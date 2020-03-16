@@ -3,7 +3,6 @@
 	2.09.2020
 	@author : Nathan Callahan
 	@author : Soumya Mitra
-	Just adding a line right here to test a git pull
 */
 
 USE master;
@@ -27,6 +26,36 @@ CREATE TABLE PlantType (
 	bloomInitiatedBy	VARCHAR(40)		NOT NULL DEFAULT('N/A')
 );
 
+CREATE TABLE Weather (
+	dateTimeStamp		DATETIME		NOT NULL	PRIMARY KEY		IDENTITY,
+	humidity			INT				NOT NULL,
+	temperature			INT				NOT NULL,
+	precipitation		INT				NOT NULL,
+	overcast			INT				NOT NULL,
+	windSpeed			INT				NOT NULL,
+	windDirection		CHAR	 		NOT NULL DEFAULT('N')
+);
+
+CREATE TABLE Sown (
+	sownId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	dateTimeStamp		DATETIME		NOT NULL	FOREIGN KEY REFERENCES Weather(dateTimeStampId),
+	countOrWeight		BIT				NOT NULL,
+	numHarvest			INT				NOT NULL,
+	numWaste			INT				NOT NULL
+);
+
+CREATE TABLE Plot(
+	plotId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	description			VARCHAR(100)	NOT NULL DEFAULT('')
+);
+
+CREATE TABLE Location (
+	locationId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	fieldColumn			INT				NOT NULL,
+	fieldRow			INT				NOT NULL,
+	plotId				INT				NOT NULL FOREIGN KEY REFERENCES Plot(plotId)
+);
+
 CREATE TABLE Plant	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
@@ -44,16 +73,16 @@ VALUES
 ('Kohlrabi', 'Early White Vienna', 0),
 ('Hot Pepper', 'Jalapeno Early',0),
 ('Melon', 'Watermelon - Orange Tendersweet', 0),
-('Cucumber', ' PickelBush', 0),
+('Cucumber', 'PickelBush', 0),
 ('Tomato', 'Roma ', 0),
-('Sweet Pepper', ' Carnival Blend', 0),
-('Hot Pepper', ' Salsa Blend', 0),
+('Sweet Pepper', 'Carnival Blend', 0),
+('Hot Pepper', 'Salsa Blend', 0),
 ('Melon', 'Watermelon - Jubilee', 0),
-('Eggplant', ' Black Beauty', 0),
-('Tomato', ' Best Boy Hybrid', 0),
-('Cucumber', ' Poinsett', 0),
-('Squash', ' Scallop', 0),
-('Melon', ' Honey Rock', 0),
+('Eggplant', 'Black Beauty', 0),
+('Tomato', 'Best Boy Hybrid', 0),
+('Cucumber', 'Poinsett', 0),
+('Squash', 'Scallop', 0),
+('Melon', 'Honey Rock', 0),
 ('Squash', 'Blue Hubbard', 0),
 ('Beet', 'Detroit Dark Red', 0),
 ('Melon', 'Cantaloupe - Hearts of Gold', 0),

@@ -17,26 +17,25 @@ GO
 USE Garden;
 GO
 
+CREATE TABLE PlantType (
+	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantName			VARCHAR(40)		NOT NULL,
+	plantSubType		VARCHAR(40)		NOT NULL,
+	daysToHarvest		INT				NOT NULL DEFAULT(0),
+	description			VARCHAR(100)	NOT NULL DEFAULT(''),
+	bloomInitiatedBy	VARCHAR(40)		NOT NULL DEFAULT('N/A')
+);
+
 CREATE TABLE Plants	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantTypeId			INT				NOT NULL	FOREIGN KEY,
+	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
 	sownId				INT				NOT NULL,
 	harvestId			INT				NOT NULL,
 	tendedId			INT				NOT NULL
 );
 
-CREATE TABLE PlantType (
-	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantName			VARCHAR(40)		NOT NULL,
-	plantSubType		VARCHAR(40)		NOT NULL,
-	daysToHarvest		INT				NOT NULL,
-	description			VARCHAR(100)	NOT NULL,
-	bloomInitiatedBy	VARCHAR(40)		NOT NULL
-);
 
-
-
-INSERT INTO plants(plantType, plantName, numPlanted)
+INSERT INTO PlantType(plantName, plantSubType, daysToHarvest)
 VALUES 
 ('Cilantro', 'Common', 0),
 ('Cilantro', 'Coriandrum sativum', 0),
@@ -116,4 +115,4 @@ VALUES
 ('Corn', 'Sweet - Golden Bantam', 0)
 ;
 
-SELECT * FROM plants;
+SELECT * FROM PlantType;

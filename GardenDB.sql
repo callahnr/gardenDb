@@ -17,12 +17,24 @@ GO
 USE Garden;
 GO
 
-CREATE TABLE plants (
-	plantId				int				not null	primary key		identity,
-	plantType			varchar(100)	not null,
-	plantName			varchar(100)	not null,
-	numPlanted			int				not null
+CREATE TABLE Plants	 (					
+	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantTypeId			INT				NOT NULL	FOREIGN KEY,
+	sownId				INT				NOT NULL,
+	harvestId			INT				NOT NULL,
+	tendedId			INT				NOT NULL
 );
+
+CREATE TABLE PlantType (
+	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantName			VARCHAR(40)		NOT NULL,
+	plantType			VARCHAR(40)		NOT NULL,
+	daysToHarvest		INT				NOT NULL,
+	description			VARCHAR(100)	NOT NULL,
+	bloomInitiatedBy	VARCHAR(40)		NOT NULL
+);
+
+
 
 INSERT INTO plants(plantType, plantName, numPlanted)
 VALUES 

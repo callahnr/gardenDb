@@ -26,7 +26,7 @@ CREATE TABLE PlantType (
 	bloomInitiatedBy	VARCHAR(40)		NOT NULL DEFAULT('N/A')
 );
 
-CREATE TABLE Plants	 (					
+CREATE TABLE Plant	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
 	sownId				INT				NOT NULL,

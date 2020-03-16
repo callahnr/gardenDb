@@ -28,7 +28,7 @@ CREATE TABLE Plants	 (
 CREATE TABLE PlantType (
 	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	plantName			VARCHAR(40)		NOT NULL,
-	plantType			VARCHAR(40)		NOT NULL,
+	plantSubType		VARCHAR(40)		NOT NULL,
 	daysToHarvest		INT				NOT NULL,
 	description			VARCHAR(100)	NOT NULL,
 	bloomInitiatedBy	VARCHAR(40)		NOT NULL

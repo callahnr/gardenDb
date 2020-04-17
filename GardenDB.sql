@@ -17,51 +17,82 @@ GO
 USE Garden;
 GO
 
-CREATE TABLE PlantType (
-	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantName			VARCHAR(40)		NOT NULL,
-	plantSubType		VARCHAR(40)		NOT NULL,
-	daysToHarvest		INT				NOT NULL DEFAULT(0),
-	description			VARCHAR(100)	NOT NULL DEFAULT(''),
-	bloomInitiatedBy	VARCHAR(40)		NOT NULL DEFAULT('N/A')
-);
 
 CREATE TABLE Weather (
-	dateTimeStamp		DATETIME		NOT NULL	PRIMARY KEY		IDENTITY,
+	weatherId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	humidity			INT				NOT NULL,
 	temperature			INT				NOT NULL,
 	precipitation		INT				NOT NULL,
 	overcast			INT				NOT NULL,
 	windSpeed			INT				NOT NULL,
-	windDirection		CHAR	 		NOT NULL DEFAULT('N')
+	windDirection		CHAR	 		NOT NULL DEFAULT('N'),
+	dateTime			DATETIME		NOT NULL
 );
 
-CREATE TABLE Sown (
-	sownId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	dateTimeStamp		DATETIME		NOT NULL	FOREIGN KEY REFERENCES Weather(dateTimeStampId),
+CREATE TABLE PlantType (
+	plantTypeId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantName			VARCHAR(40)		NOT NULL,
+	plantBreed			VARCHAR(40)		NOT NULL,
+	daysToHarvest		INT				NOT NULL DEFAULT(0),
+	description			VARCHAR(100)	NOT NULL DEFAULT(''),
+	bloomTrigger		VARCHAR(40)		NOT NULL DEFAULT('N/A')
+);
+
+CREATE TABLE Harvest (
+	harvestId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantId				INT				NOT NULL	FOREIGN KEY	REFERENCES Plant(plantId),
+	dateTime			DATETIME		NOT NULL,
+	numHarvest			FLOAT			NOT NULL,
+	numWaste			FLOAT			NOT NULL
+)
+
+CREATE TABLE ActionTbl (
+	actionId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	planted				BIT				NOT NULL,
+	watered				BIT				NOT NULL,
+	fertilized			BIT				NOT NULL,
+	depested			BIT				NOT NULL,
+	noAction			BIT				NOT NULL
+)
+
+CREATE TABLE Tended (
+	tendedId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	plantId				INT				NOT NULL	FOREIGN KEY REFERENCES plant(plantId),
+	soilId				INT				NOT NULL	FOREIGN KEY REFERENCES soil(soilId),
+	actionId			INT				NOT NULL	FOREIGN KEY REFERENCES actionTbl(actionId),
+	dateTimeStamp		DATETIME		NOT NULL,
 	countOrWeight		BIT				NOT NULL,
-	numHarvest			INT				NOT NULL,
-	numWaste			INT				NOT NULL
-);
+	plantCondition		VARCHAR(30)		NOT NULL
+ );
 
-CREATE TABLE Plot(
-	plotId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	description			VARCHAR(100)	NOT NULL DEFAULT('')
-);
-
-CREATE TABLE Location (
+CREATE TABLE LocationTbl (
 	locationId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	fieldColumn			INT				NOT NULL,
 	fieldRow			INT				NOT NULL,
-	plotId				INT				NOT NULL FOREIGN KEY REFERENCES Plot(plotId)
+	field				VARCHAR(30)		NOT NULL
 );
+
+CREATE TABLE Photos (
+	photoId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	width				INT				NOT NULL,
+	height				INT				NOT NULL
+)
+
+CREATE TABLE Soil (
+	soilId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	dateTime			DATETIME		NOT NULL,
+	pH					FLOAT			NOT NULL,
+	moistureLvl			FLOAT			NOT NULL,
+	nitrogenLvl			FLOAT			NOT NULL,
+	phosoLvl			FLOAT			NOT NULL
+)
 
 CREATE TABLE Plant	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
-	sownId				INT				NOT NULL,
-	harvestId			INT				NOT NULL,
-	tendedId			INT				NOT NULL
+	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
+	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
+	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId)
 );
 
 

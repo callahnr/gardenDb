@@ -40,11 +40,12 @@ CREATE TABLE PlantType (
 
 CREATE TABLE Harvest (
 	harvestId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantId				INT				NOT NULL	FOREIGN KEY	REFERENCES Plant(plantId),
+	plantId				INT				NOT NULL,
 	dateTime			DATETIME		NOT NULL,
 	numHarvest			FLOAT			NOT NULL,
 	numWaste			FLOAT			NOT NULL
 )
+
 
 CREATE TABLE ActionTbl (
 	actionId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
@@ -54,16 +55,6 @@ CREATE TABLE ActionTbl (
 	depested			BIT				NOT NULL,
 	noAction			BIT				NOT NULL
 )
-
-CREATE TABLE Tended (
-	tendedId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantId				INT				NOT NULL	FOREIGN KEY REFERENCES plant(plantId),
-	soilId				INT				NOT NULL	FOREIGN KEY REFERENCES soil(soilId),
-	actionId			INT				NOT NULL	FOREIGN KEY REFERENCES actionTbl(actionId),
-	dateTimeStamp		DATETIME		NOT NULL,
-	countOrWeight		BIT				NOT NULL,
-	plantCondition		VARCHAR(30)		NOT NULL
- );
 
 CREATE TABLE LocationTbl (
 	locationId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
@@ -85,7 +76,17 @@ CREATE TABLE Soil (
 	moistureLvl			FLOAT			NOT NULL,
 	nitrogenLvl			FLOAT			NOT NULL,
 	phosoLvl			FLOAT			NOT NULL
-)
+);
+
+CREATE TABLE Tended (
+	tendedId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+	actionId			INT				NOT NULL	FOREIGN KEY REFERENCES ActionTbl(actionId),
+	plantId				INT				NOT NULL,
+	soilId				INT				NOT NULL	FOREIGN KEY REFERENCES Soil(soilId),
+	dateTimeStamp		DATETIME		NOT NULL,
+	countOrWeight		BIT				NOT NULL,
+	plantCondition		VARCHAR(30)		NOT NULL
+);
 
 CREATE TABLE Plant	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
@@ -93,87 +94,11 @@ CREATE TABLE Plant	 (
 	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
 	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
 	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId)
-);
+)
+
+ALTER TABLE Harvest ADD FOREIGN KEY (plantId) REFERENCES Plant(plantId);
+ALTER TABLE Tended ADD FOREIGN KEY (plantId) REFERENCES Plant(plantId);
 
 
-INSERT INTO PlantType(plantName, plantSubType, daysToHarvest)
-VALUES 
-('Cilantro', 'Common', 0),
-('Cilantro', 'Coriandrum sativum', 0),
-('Corn', 'Sweet - Bilicious Hybrid', 0),
-('Kohlrabi', 'Early White Vienna', 0),
-('Hot Pepper', 'Jalapeno Early',0),
-('Melon', 'Watermelon - Orange Tendersweet', 0),
-('Cucumber', 'PickelBush', 0),
-('Tomato', 'Roma ', 0),
-('Sweet Pepper', 'Carnival Blend', 0),
-('Hot Pepper', 'Salsa Blend', 0),
-('Melon', 'Watermelon - Jubilee', 0),
-('Eggplant', 'Black Beauty', 0),
-('Tomato', 'Best Boy Hybrid', 0),
-('Cucumber', 'Poinsett', 0),
-('Squash', 'Scallop', 0),
-('Melon', 'Honey Rock', 0),
-('Squash', 'Blue Hubbard', 0),
-('Beet', 'Detroit Dark Red', 0),
-('Melon', 'Cantaloupe - Hearts of Gold', 0),
-('Melon', 'Watermelon - Sugar Baby', 0),
-('Cucumber', 'Boston Pickling', 0),
-('Squash', 'Waltham Butternut', 0),
-('Squash', 'Table Queen', 0),
-('Squash', 'Vegetable Spaghetti', 0),
-('Tomato', 'Striped Stuffer', 0),
-('Squash', 'Acorn', 0),
-('Salsify', 'Mammoth Sandwich Island', 0),
-('Cucumber', 'Straight Eight', 0),
-('Pumpkin', 'Small Sugar', 0),
-('Mustard', 'Old Fashioned', 0),
-('Eggplant', 'Long Purple', 0),
-('Dill', 'Mammoth Long Island', 0),
-('Parsnip', 'Harris Model', 0),
-('Parsnip', 'Hollow Crown', 0),
-('Borage', 'Common', 0),
-('Mustard', 'Southern Giant Curled', 0),
-('Melon', 'Hales Best Jumbo', 0),
-('Melon', 'Watermelon - Charleston Grey', 0),
-('Bean', 'Fava - Broad Windsor', 0),
-('Coriander', 'Long Standing', 0),
-('Okra', 'Red Burgundy', 0),
-('Cumin', 'Common', 0),
-('Thyme', 'Winter', 0),
-('Yarrow', 'White', 0),
-('Squash', 'Dark Green Zucchini', 0),
-('Parsley', 'Moss Curled', 0),
-('Bean', 'Lima', 0),
-('Okra', 'Perkins Long Pod', 0),
-('Amaranth', 'Red Garnet', 0),
-('Fennel', 'Florence', 0),
-('Basil', 'Italian Large Leaf', 0),
-('Caraway', 'Common', 0),
-('Melon', 'Watermelon - Black Diamond', 0),
-('Pea', 'Green Arrow', 0),
-('Pumpkin', 'Mammoth Gold', 0),
-('Tomato', 'Floradade', 0),
-('Tomato', 'Costoluto Genovese', 0),
-('Tomato', 'Brandywine Red', 0),
-('Tomato', 'Ace 55', 0),
-('Tomato', 'Marglobe Improved', 0),
-('Tomato', 'San Marzano', 0),
-('Tomato', 'Yellow Pear', 0),
-('Tomato', 'Rutgers', 0),
-('Tomato', 'Marion', 0),
-('Tomato', 'Beefsteak Red', 0),
-('Tomato', 'Azoyehka', 0),
-('Tomato', 'Chocolate Stripes', 0),
-('Tomato', 'Cherokee Purple', 0),
-('Tomato', 'Golden Jubilee', 0),
-('Tomato', 'Homestead 24', 0),
-('Squash', 'Cocozelle', 0),
-('Bean', 'Green - Blue Lake (Bush)', 0),
-('Pea', 'Little Marvel', 0),
-('Bean', 'Golden Wax', 0),
-('Pea', 'Sugar Ann', 0),
-('Corn', 'Sweet - Golden Bantam', 0)
-;
 
 SELECT * FROM PlantType;

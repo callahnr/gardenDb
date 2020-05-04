@@ -220,48 +220,54 @@ AS BEGIN
 ----------------------------------
 ------CREATE NEW PLANT-TYPE ------
 ----------------------------------
-	IF(@plantId = 0) BEGIN   
-		IF EXISTS(SELECT TOP(1) NULL FROM Plants
-		WHERE plantTypeId = @plantTypeId)  BEGIN
-			SELECT -1 AS plantTypeId
-			PRINT 'PLANT-TYPE-ID ALREADY EXISTS'
+	IF(@plantId = 0) 
+		BEGIN   
+			IF EXISTS(SELECT TOP(1) NULL FROM Plants
+			WHERE plantTypeId = @plantTypeId)  
+			BEGIN
+				SELECT -1 AS plantTypeId
+				PRINT 'PLANT-TYPE-ID ALREADY EXISTS'
+			END
+		ELSE 
+			BEGIN
+				INSERT INTO PlantType (
+					plantTypeId,	
+					plantName,
+					plantBreed,	
+					daysToHarvest,
+					description,	
+					bloomTrigger
+						)
+				VALUES (
+					@plantTypeId,
+					@plantName,
+					@plantBreed,
+					@daysToHarvest,
+					@description,
+					@bloomTrigger	
+						)
+				SELECT @@IDENTITY AS plantTypeId
+			END
 		END
-		ELSE BEGIN
-
-		INSERT INTO PlantType (
-			plantTypeId,	
-			plantName,
-			plantBreed,	
-			daysToHarvest,
-			description,	
-			bloomTrigger
-				)
-		VALUES (
-			@plantTypeId,
-			@plantName,
-			@plantBreed,
-			@daysToHarvest,
-			@description,
-			@bloomTrigger	
-				)
-		SELECT @@IDENTITY AS plantTypeId
-	END
-END 
 
 ---------------------------------------
 ------- ARCHIVE PLANT-TYPE PROFILE -----
 ---------------------------------------
-	ELSE IF(@archived = 1) BEGIN
+	ELSE IF(@archived = 1) 
+	BEGIN
 
 ---- CHECKS IF PLANT-TYPE EXISTS ----
-		IF NOT EXISTS (SELECT NULL FROM PlantType WHERE plantTypeId = @plantTypeId) BEGIN
+		IF NOT EXISTS (SELECT NULL FROM PlantType WHERE plantTypeId = @plantTypeId) 
+		BEGIN
 			SELECT -1 AS plantTypeId
 			PRINT 'PLANT-TYPE-ID DOES NOT EXIST'
-		END ELSE
+		END 
+		ELSE
 
 ----CHECKS IF PLANT-TYPE ID IS LINKED IN OTHER TABLES AND SOFT DELETS IF TRUE----
 		IF	EXISTS (SELECT TOP(1) NULL FROM Plants 
 			WHERE plantTypeId = @plantTypeId)
+		BEGIN
 				UPDATE	PlantType 
 				SET		archived = 1 
 				WHERE	plantTypeId = @plantTypeId 
@@ -277,8 +283,40 @@ END
 	END
 END
 
---spGetPlantByType --Gets a list of all plants based on type
---spGetPlantsTendedByAction --Get a list of plants based on the action taken on them (i.e. All plants that were watered)
+--================= LIST OF PLANTS BY TYPE =======================
+--spGetPlantByType 
+--Gets a list of all plants based on type
+GO
+	CREATE PROCEDURE spGetPlantByType
+		@plantTypeId			INT
+	AS
+	BEGIN
+	---- CHECKS IF PLANT-TYPE EXISTS ----
+		IF NOT EXISTS (SELECT NULL FROM PlantType WHERE plantTypeId = @plantTypeId) 
+		BEGIN
+			SELECT -1 AS plantTypeId
+			PRINT 'PLANT-TYPE-ID DOES NOT EXIST'
+		END 
+		ELSE
+			SELECT *
+			FROM Plant 
+			WHERE plantTypeId = @plantTypeId
+	END
+
+--================= LIST OF PLANTS BY ACTION =======================
+--spGetPlantsByAction 
+--Get a list of plants based on the action taken on them (i.e. All plants that were watered)
+
+
+--	CREATE TABLE ActionTbl (
+--	actionId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
+--	planted				BIT				NOT NULL,
+--	watered				BIT				NOT NULL,
+--	fertilized			BIT				NOT NULL,
+--	depested			BIT				NOT NULL,
+--	noAction			BIT				NOT NULL
+--)
+
 --spGetPlantsTendedByPlantType --Get a list 
 --spGetPlantsTendedByDate --Get a list of all plants tended on a specific day
 --spGetHarvestByPlantType --Get a sum of all harvests by plant type

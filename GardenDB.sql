@@ -31,6 +31,10 @@ GO
 USE Garden;
 GO
 
+--===================================================================
+--======================== TABLES ===================================
+--===================================================================
+
 
 CREATE TABLE Weather (
 	weatherId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
@@ -49,7 +53,7 @@ CREATE TABLE PlantType (
 	plantBreed			VARCHAR(40)		NOT NULL,
 	daysToHarvest		INT				NOT NULL DEFAULT(0),
 	description			VARCHAR(100)	NOT NULL DEFAULT(''),
-	bloomTrigger		VARCHAR(40)		NOT NULL DEFAULT('N/A')
+	archived			INT				NOT NULL DEFAULT(0)
 );
 
 CREATE TABLE Harvest (
@@ -109,12 +113,188 @@ CREATE TABLE Plant	 (
 	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
 	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
 	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId),
-	photoId				INT				NOT NULL	FOREIGN KEY REFERENCES Photos(photoId)
+	photoId				INT				NOT NULL	FOREIGN KEY REFERENCES Photos(photoId),
+	archived			INT				NOT NULL	DEFAULT(0)
 )
 
 ALTER TABLE Harvest ADD FOREIGN KEY (plantId) REFERENCES Plant(plantId);
 ALTER TABLE Tended ADD FOREIGN KEY (plantId) REFERENCES Plant(plantId);
 
 
+--===================================================================
+--================= STORED PROCEEDURES ==============================
+--===================================================================
 
+
+--================= ADD/UPDATE/ARCHIVE PLANTS =======================
+--spAddUpdateArchivePlant  
+-- Adds/Updates/Archives a plant to/from the database
+GO
+
+	CREATE PROCEDURE spAddUpdateDeletePlant
+		@plantId		INT,
+		@plantTypeId	INT,
+		@harvestId		INT,
+		@tendedId		INT,
+		@locationId		INT,
+		@photoId		INT,
+		@archived		INT
+		
+AS BEGIN
+----------------------------------
+------CREATE NEW PLANT PROFILE----
+----------------------------------
+	IF(@plantId = 0) BEGIN   
+		IF EXISTS(SELECT TOP(1) NULL FROM Plants
+		WHERE plantId = @plantId)  BEGIN
+			SELECT -1 AS plantId
+			PRINT 'PLANT-ID ALREADY EXISTS'
+		END
+		ELSE BEGIN
+			INSERT INTO Plants (
+				plantId,	
+				plantTypeId,
+				harvestId,
+				tendedId,
+				locationId,
+				photoId	
+					)
+			VALUES (
+				@plantId,
+				@plantTypeId,
+				@harvestId,
+				@tendedId,
+				@locationId,
+				@photoId	
+				 )
+			SELECT @@IDENTITY AS plantId
+		END
+	END 
+
+----------------------------------
+------- ARCHIVE PLANT PROFILE ----
+----------------------------------
+	ELSE IF(@archived = 1) BEGIN
+
+---- CHECKS IF PLANT EXISTS ----
+		IF NOT EXISTS (SELECT NULL FROM users WHERE plantId = @plantId) BEGIN
+			SELECT -1 AS plantId
+			PRINT 'PLANT-ID DOES NOT EXIST'
+		END ELSE
+
+----CHECKS IF PLANT ID IS LINKED IN OTHER TABLES AND SOFT DELETS IF TRUE----
+		IF	EXISTS (SELECT TOP(1) NULL FROM Harvest 
+			WHERE plantId = @plantId) OR
+			EXISTS (SELECT TOP(1) NULL FROM Tended 
+			WHERE plantId = @plantId) BEGIN
+				UPDATE	Plants 
+				SET		archived = 1 
+				WHERE	plantId = @plantId 
+				SELECT @plantId AS plantId
+				PRINT 'PLANT ARCHIVED'
+		END
+
+----HARD DELETES ROW IF PLANT ID IS NOT LINKED TO ANY OTHER TABLES----
+		ELSE BEGIN
+			DELETE FROM Plants WHERE plantId = @plantId
+			PRINT 'PLANT-ID HARD DELETED'
+		END
+	END
+END
+
+--================= ADD/UPDATE/ARCHIVE PLANT-TYPE =====================
+
+--spAddUpdateArchivePlantType   
+--Adds/Updates/Archives a plant type to/from the database
+GO
+
+	CREATE PROCEDURE spAddUpdateArchivePlantType
+		@plantTypeId			INT,
+		@plantName				VARCHAR(40),
+		@plantBreed				VARCHAR(40),
+		@daysToHarvest			INT,
+		@description			VARCHAR(100),
+		@bloomTrigger			VARCHAR(40),
+		@archived				INT
+AS BEGIN
+----------------------------------
+------CREATE NEW PLANT-TYPE ------
+----------------------------------
+	IF(@plantId = 0) BEGIN   
+		IF EXISTS(SELECT TOP(1) NULL FROM Plants
+		WHERE plantTypeId = @plantTypeId)  BEGIN
+			SELECT -1 AS plantTypeId
+			PRINT 'PLANT-TYPE-ID ALREADY EXISTS'
+		END
+		ELSE BEGIN
+
+		INSERT INTO PlantType (
+			plantTypeId,	
+			plantName,
+			plantBreed,	
+			daysToHarvest,
+			description,	
+			bloomTrigger
+				)
+		VALUES (
+			@plantTypeId,
+			@plantName,
+			@plantBreed,
+			@daysToHarvest,
+			@description,
+			@bloomTrigger	
+				)
+		SELECT @@IDENTITY AS plantTypeId
+	END
+END 
+
+---------------------------------------
+------- ARCHIVE PLANT-TYPE PROFILE -----
+---------------------------------------
+	ELSE IF(@archived = 1) BEGIN
+
+---- CHECKS IF PLANT-TYPE EXISTS ----
+		IF NOT EXISTS (SELECT NULL FROM PlantType WHERE plantTypeId = @plantTypeId) BEGIN
+			SELECT -1 AS plantTypeId
+			PRINT 'PLANT-TYPE-ID DOES NOT EXIST'
+		END ELSE
+
+----CHECKS IF PLANT-TYPE ID IS LINKED IN OTHER TABLES AND SOFT DELETS IF TRUE----
+		IF	EXISTS (SELECT TOP(1) NULL FROM Plants 
+			WHERE plantTypeId = @plantTypeId)
+				UPDATE	PlantType 
+				SET		archived = 1 
+				WHERE	plantTypeId = @plantTypeId 
+				SELECT @plantTypeId AS plantTypeId
+				PRINT 'PLANT-TYPE ARCHIVED'
+		END
+
+----HARD DELETES ROW IF PLANT-TYPE ID IS NOT LINKED TO ANY OTHER TABLES----
+		ELSE BEGIN
+			DELETE FROM plantTypeId WHERE plantTypeId = @plantTypeId
+			PRINT 'PLANT-TYPE-ID HARD DELETED'
+		END
+	END
+END
+
+--spGetPlantByType --Gets a list of all plants based on type
+--spGetPlantsTendedByAction --Get a list of plants based on the action taken on them (i.e. All plants that were watered)
+--spGetPlantsTendedByPlantType --Get a list 
+--spGetPlantsTendedByDate --Get a list of all plants tended on a specific day
+--spGetHarvestByPlantType --Get a sum of all harvests by plant type
+--spGetHarvestByPlant --Get the harvest of an individual plant
+--spGetWeatherByDate --Get all weather data of a specific date
+--spGetPrecipByDate --Get precipitation of a specific date
+--spGetSoilByPlant --Get soil conditions of a plant listed by date
+--spGetSoilListByPh --Get soil list by pH range ordered by location
+--spGetPlantConditionByDate --Get conditions recorded of all plants by date
+--spGetLocByPlantType --Get the locations (col, row, field) of all plants of a type
+--spGetLocByPlant --Get the specific location (column, row, field) of one plant
+--spGetPhotosByType --Get all photos (path/to/photos) returned by plant type
+--spAddDeletePhoto --Add/Delete photos (path/to/photos) of a specific plant or type
+--spErrorRecord --Record database errors
+
+--===================================================================
+--===================================================================
+--===================================================================
 SELECT * FROM PlantType;

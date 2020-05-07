@@ -44,7 +44,7 @@ CREATE TABLE Weather (
 	overcast			INT				NOT NULL,
 	windSpeed			INT				NOT NULL,
 	windDirection		CHAR	 		NOT NULL DEFAULT('N'),
-	dateTime			DATETIME		NOT NULL
+	dateTimeStamp		DATETIME		NOT NULL
 );
 
 CREATE TABLE PlantType (
@@ -59,7 +59,7 @@ CREATE TABLE PlantType (
 CREATE TABLE Harvest (
 	harvestId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
 	plantId				INT				NOT NULL,
-	dateTime			DATETIME		NOT NULL,
+	dateTimeStamp		DATETIME		NOT NULL,
 	numHarvest			FLOAT			NOT NULL,
 	numWaste			FLOAT			NOT NULL
 )
@@ -76,9 +76,9 @@ CREATE TABLE ActionTbl (
 
 CREATE TABLE LocationTbl (
 	locationId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	fieldColumn			INT				NOT NULL,
-	fieldRow			INT				NOT NULL,
-	field				VARCHAR(30)		NOT NULL
+	fieldName			VARCHAR(30)		NOT NULL,
+	fieldColumn			INT				NOT NULL	DEFAULT(-1),
+	fieldRow			INT				NOT NULL	DEFAULT(-1)
 );
 
 CREATE TABLE Photos (
@@ -90,7 +90,7 @@ CREATE TABLE Photos (
 
 CREATE TABLE Soil (
 	soilId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	dateTime			DATETIME		NOT NULL,
+	dateTimeStamp		DATETIME		NOT NULL,
 	pH					FLOAT			NOT NULL,
 	moistureLvl			FLOAT			NOT NULL,
 	nitrogenLvl			FLOAT			NOT NULL,
@@ -109,11 +109,11 @@ CREATE TABLE Tended (
 
 CREATE TABLE Plant	 (					
 	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
-	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
-	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
-	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId),
-	photoId				INT				NOT NULL	FOREIGN KEY REFERENCES Photos(photoId),
+	plantTypeId			INT				NOT NULL				FOREIGN KEY REFERENCES PlantType(plantTypeId),
+	locationId			INT				NOT NULL				FOREIGN KEY REFERENCES LocationTbl(locationId),
+	harvestId			INT				FOREIGN KEY REFERENCES Harvest(harvestId),
+	tendedId			INT				FOREIGN KEY REFERENCES Tended(tendedId),
+	photoId				INT				FOREIGN KEY REFERENCES Photos(photoId),
 	archived			INT				NOT NULL	DEFAULT(0)
 )
 
@@ -412,7 +412,25 @@ VALUES
 ('Bean', 'Golden Wax', 0),
 ('Pea', 'Sugar Ann', 0),
 ('Corn', 'Sweet - Golden Bantam', 0)
-;
 
+--CREATE TABLE Plant	 (					
+--	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
+--	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
+--	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
+--	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
+--	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId),
+--	photoId				INT				NOT NULL	FOREIGN KEY REFERENCES Photos(photoId),
+--	archived			INT				NOT NULL	DEFAULT(0)
+--)
 
-SELECT * FROM PlantType;
+INSERT INTO LocationTbl ( fieldName, fieldColumn, fieldRow  )
+VALUES ('NORTH', 1, 1),('NORTH', 1, 2),('NORTH', 1, 3),('NORTH', 1, 4), ('NORTH', 1, 5), ('NORTH', 2, 1), ('NORTH', 2, 2), ('NORTH', 2, 3), ('NORTH', 2, 4), ('NORTH', 2, 5)
+
+INSERT INTO Harvest( plantTypeId, locationId )
+VALUES			  ( 1, 1 ), ( 1, 2), ( 1, 3 ), ( 1, 4 )
+
+INSERT INTO Plant ( plantTypeId, locationId )
+VALUES			  ( 1, 1 ), ( 1, 2), ( 1, 3 ), ( 1, 4 ) 
+
+SELECT * FROM PlantType
+SELECT * FROM LocationTbl

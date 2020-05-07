@@ -234,14 +234,14 @@ AS BEGIN
 					plantName,
 					plantBreed,	
 					daysToHarvest,
-					description,	
+					description	
 				)
 				VALUES (
 					@plantTypeId,
 					@plantName,
 					@plantBreed,
 					@daysToHarvest,
-					@description,
+					@description
 				)
 				SELECT @@IDENTITY AS plantTypeId
 			END
@@ -303,17 +303,6 @@ GO
 --================= LIST OF PLANTS BY ACTION =======================
 --spGetPlantsByAction 
 --Get a list of plants based on the action taken on them (i.e. All plants that were watered)
-
-
---	CREATE TABLE ActionTbl (
---	actionId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
---	planted				BIT				NOT NULL,
---	watered				BIT				NOT NULL,
---	fertilized			BIT				NOT NULL,
---	depested			BIT				NOT NULL,
---	noAction			BIT				NOT NULL
---)
-
 --spGetPlantsTendedByPlantType --Get a list 
 --spGetPlantsTendedByDate --Get a list of all plants tended on a specific day
 --spGetHarvestByPlantType --Get a sum of all harvests by plant type
@@ -413,24 +402,12 @@ VALUES
 ('Pea', 'Sugar Ann', 0),
 ('Corn', 'Sweet - Golden Bantam', 0)
 
---CREATE TABLE Plant	 (					
---	plantId				INT				NOT NULL	PRIMARY KEY		IDENTITY,
---	plantTypeId			INT				NOT NULL	FOREIGN KEY REFERENCES PlantType(plantTypeId),
---	harvestId			INT				NOT NULL	FOREIGN KEY REFERENCES Harvest(harvestId),
---	tendedId			INT				NOT NULL	FOREIGN KEY REFERENCES Tended(tendedId),
---	locationId			INT				NOT NULL	FOREIGN KEY REFERENCES LocationTbl(locationId),
---	photoId				INT				NOT NULL	FOREIGN KEY REFERENCES Photos(photoId),
---	archived			INT				NOT NULL	DEFAULT(0)
---)
-
 INSERT INTO LocationTbl ( fieldName, fieldColumn, fieldRow  )
 VALUES ('NORTH', 1, 1),('NORTH', 1, 2),('NORTH', 1, 3),('NORTH', 1, 4), ('NORTH', 1, 5), ('NORTH', 2, 1), ('NORTH', 2, 2), ('NORTH', 2, 3), ('NORTH', 2, 4), ('NORTH', 2, 5)
-
-INSERT INTO Harvest( plantTypeId, locationId )
-VALUES			  ( 1, 1 ), ( 1, 2), ( 1, 3 ), ( 1, 4 )
 
 INSERT INTO Plant ( plantTypeId, locationId )
 VALUES			  ( 1, 1 ), ( 1, 2), ( 1, 3 ), ( 1, 4 ) 
 
+SELECT * FROM Plant
 SELECT * FROM PlantType
 SELECT * FROM LocationTbl

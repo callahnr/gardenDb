@@ -1143,11 +1143,6 @@ VALUES
 (152, 152, 152, 152, '12/16/2019', 0, 'HEALTHY')
 SET IDENTITY_INSERT Tended OFF
 
-
-
-INSERT INTO Plant ( plantTypeId, locationId )
-VALUES			  ( 1, 1 ), ( 1, 2), ( 1, 3 ), ( 1, 4 ) 
-
 SELECT * FROM Plant
 SELECT * FROM PlantType
 SELECT * FROM LocationTbl

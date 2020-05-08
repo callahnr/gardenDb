@@ -370,6 +370,8 @@ END CATCH
 END
 GO
 
+exec spAddUpdateDelete_PlantType 0, 'Tomato', 'Roma', 27, 'juicy tomato', 0
+
 
 
                                     --*************** ADD/UPDATE Harvest *****************
@@ -402,7 +404,7 @@ AS BEGIN
 			
 			UPDATE Harvest
 			SET plantId = @plantId, recordedDate = @recordedDate, numHarvest = @numHarvest, numWaste = @numWaste
-
+			WHERE harvestId = @harvestId
 			SELECT	@harvestId AS harvestId,
 					[success] = CAST(1 AS BIT)
 		END
@@ -420,7 +422,7 @@ GO
 
 
 
-                                  --*************** ADD/UPDATE *****************
+                                  --*************** ADD/UPDATE Action *****************
 CREATE PROCEDURE spAddUpdate_Action
 	@actionId			INT,
 	@planted			BIT,
@@ -430,23 +432,232 @@ CREATE PROCEDURE spAddUpdate_Action
 	@noAction			BIT	
 AS BEGIN
 	BEGIN TRY
-	IF(@actionId = 0) BEGIN			-- ADD Harvest
+	IF(@actionId = 0) BEGIN			   -- ADD Action
 
-		INSERT INTO ActionTbl(planted, watered, 
-		SELECT	@@IDENTITY AS harvestId,
+		INSERT INTO ActionTbl(planted, watered, fertilized, depested, noAction) VALUES
+							 (@planted, @watered, @fertilized, @depested, @noAction)
+		SELECT	@@IDENTITY AS actionId,
 				[success] = CAST(1 AS BIT)
-		END
+	END ELSE BEGIN						-- UPDATE Action
 
-	END ELSE BEGIN						-- UPDATE Harvest
-		IF NOT EXISTS (SELECT TOP(1) NULL FROM Harvest WHERE harvestId = @harvestId) BEGIN
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM ActionTbl WHERE actionId = @actionId) BEGIN
 			SELECT	[message] = 'harvest ID does not exist',
 					[success] = CAST(0 AS BIT)
 		END ELSE BEGIN
 			
-			UPDATE Harvest
-			SET plantId = @plantId, recordedDate = @recordedDate, numHarvest = @numHarvest, numWaste = @numWaste
+			UPDATE ActionTbl
+			SET planted = @planted, watered = @planted, fertilized = @fertilized, depested = @depested, noAction = @noAction
+			WHERE actionId = @actionId
+			SELECT	@actionId AS actionId,
+					[success] = CAST(1 AS BIT)
+		END
 
-			SELECT	@harvestId AS harvestId,
+	END
+END TRY BEGIN CATCH
+	
+	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
+
+END CATCH
+
+	IF(@@TRANCOUNT > 0) COMMIT TRAN
+END
+GO
+
+
+
+
+
+
+                                  --*************** ADD/UPDATE/DELETE Location *****************
+CREATE PROCEDURE spAddUpdate_Location
+	@locationId			INT,		
+	@fieldName			VARCHAR(30),
+	@fieldColumn		INT,		
+	@fieldRow			INT,
+	@delete				BIT = 0
+AS BEGIN
+
+BEGIN TRY
+	IF(@locationId = 0) BEGIN			   -- ADD Location
+
+		INSERT INTO LocationTbl(fieldName, fieldColumn, fieldRow) VALUES
+							   (@fieldName, @fieldColumn, @fieldRow)
+		SELECT	@@IDENTITY AS locationId,
+				[success] = CAST(1 AS BIT)
+
+	END ELSE IF(@delete = 1) BEGIN		-- DELETE Location
+		
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM Location WHERE locationId = @locationId) BEGIN
+			SELECT	[message] = 'ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+
+			DELETE FROM LocationTbl WHERE locationId = @locationId
+			SELECT	0 as locationId, 
+					[success] = CAST(1 AS BIT)
+		END
+
+	END ELSE BEGIN						-- UPDATE Location
+
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM Location WHERE locationId = @locationId) BEGIN
+			SELECT	[message] = 'Location ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			
+			UPDATE LocationTbl
+			SET fieldName = @fieldName, fieldColumn = @fieldColumn, fieldRow = @fieldRow
+			WHERE locationId = @locationId
+
+			SELECT	@locationId AS locationId,
+					[success] = CAST(1 AS BIT)
+		END
+
+	END
+END TRY BEGIN CATCH
+	
+	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
+
+END CATCH
+
+	IF(@@TRANCOUNT > 0) COMMIT TRAN
+END
+GO
+
+
+
+
+
+                --*************** ADD/UPDATE SoilCondition *****************
+CREATE PROCEDURE spAddUpdate_SoilCondition
+	@soilCondId			INT,	
+	@recordedDate		DATETIME,
+	@pH					FLOAT,
+	@moistureLvl		FLOAT,	
+	@nitrogenLvl		FLOAT,	
+	@phosoLvl			FLOAT	
+AS BEGIN
+
+	BEGIN TRY
+	IF(@soilCondId = 0) BEGIN			   -- ADD SoilCondition
+
+		INSERT INTO SoilCondition (recordedDate, pH, moistureLvl, nitrogenLvl, phosoLvl) VALUES
+								  (@recordedDate, @pH, @moistureLvl, @nitrogenLvl, @phosoLvl)
+		SELECT	@@IDENTITY AS soilCondId,
+				[success] = CAST(1 AS BIT)
+	END ELSE BEGIN						-- UPDATE SoilCondition
+
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM SoilCondition WHERE soilCondId = @soilCondId) BEGIN
+			SELECT	[message] = 'soil ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			
+			UPDATE SoilCondition
+			SET recordedDate = @recordedDate, pH = @pH, moistureLvl = @moistureLvl, nitrogenLvl = @nitrogenLvl, phosoLvl = @phosoLvl
+			WHERE soilCondId = @soilCondId
+			SELECT	@soilCondId AS soilCondId,
+					[success] = CAST(1 AS BIT)
+		END
+
+	END
+END TRY BEGIN CATCH
+	
+	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
+
+END CATCH
+
+	IF(@@TRANCOUNT > 0) COMMIT TRAN
+END
+GO
+
+
+
+										 --*************** ADD/UPDATE/DELETE Plant *****************
+
+CREATE PROCEDURE spAddUpdateDelete_Plant
+	@plantId				INT,
+	@plantTypeId			INT,
+	@locationId				INT,
+	@delete					INT
+AS BEGIN
+
+BEGIN TRY
+	IF(@plantId = 0) BEGIN			-- ADD plant
+		
+		INSERT INTO Plant (plantTypeId, locationId, archived) VALUES
+						  (@plantTypeId, @locationId, 0)
+		SELECT	@@IDENTITY AS plantId,
+				[success] = CAST(1 AS BIT)
+
+	END ELSE IF(@delete = 1) BEGIN		-- SOFT DELETE plant
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM Plant WHERE PlantId = @plantId) BEGIN
+			SELECT	[message] = 'plant ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			UPDATE Plant
+			SET archived = 1
+			WHERE plantId = @plantId
+			SELECT	0 as plantId,
+					[success] = CAST(1 AS BIT)
+		END
+
+	END ELSE BEGIN						-- UPDATE plant
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM Plant WHERE PlantId = @plantTypeId) BEGIN
+			SELECT	[message] = 'plant ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			
+			UPDATE Plant
+			SET plantTypeId = @plantTypeId, locationId = @locationId, archived = 0
+			WHERE plantId = @plantId
+
+			SELECT	@plantId AS plantId,
+					[success] = CAST(1 AS BIT)
+		END
+
+	END
+END TRY BEGIN CATCH
+	
+	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
+
+END CATCH
+
+	IF(@@TRANCOUNT > 0) COMMIT TRAN
+
+END
+GO
+
+
+
+
+
+                --*************** ADD/UPDATE Tended *****************
+CREATE PROCEDURE spAddUpdate_Tended
+	@tendedId			INT,	
+	@actionId			INT,		
+	@plantId			INT,		
+	@soilCondId			INT,		
+	@recordedDate		DATETIME,	
+	@plantCondition		VARCHAR(30)		
+AS BEGIN
+
+	BEGIN TRY
+	IF(@tendedId = 0) BEGIN			   -- ADD Tended
+
+		INSERT INTO Tended (actionId, plantId, soilCondId, recordedDate, plantCondition)
+					VALUES(@actionId, @plantId, @soilCondId, @recordedDate, @plantCondition)
+		SELECT	@@IDENTITY AS tendedId,
+				[success] = CAST(1 AS BIT)
+	END ELSE BEGIN						-- UPDATE Tended
+
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM Tended WHERE tendedId = @tendedId) BEGIN
+			SELECT	[message] = 'Tended ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			
+			UPDATE Tended
+			SET actionId = @actionId, plantId = @plantId, soilCondId = @soilCondId, recordedDate = @recordedDate, plantCondition = @plantCondition
+			WHERE tendedId = @tendedId
+			SELECT	@tendedId AS tendedId,
 					[success] = CAST(1 AS BIT)
 		END
 

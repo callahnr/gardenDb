@@ -44,7 +44,6 @@ CREATE TABLE Weather (
 	overcast			INT				NOT NULL,
 	windSpeed			INT				NOT NULL,
 	windDirection		VARCHAR(5)	 	NOT NULL	DEFAULT('N'),
-	recordedDate		DATETIME		NOT NULL
 );
 
 CREATE TABLE PlantType (
@@ -52,7 +51,7 @@ CREATE TABLE PlantType (
 	plantName			VARCHAR(40)		NOT NULL,
 	plantBreed			VARCHAR(40)		NOT NULL,
 	daysToHarvest		INT				NOT NULL	DEFAULT(0),
-	description			VARCHAR(5000)	NOT NULL	DEFAULT(''),
+	[description]		VARCHAR(5000)	NOT NULL	DEFAULT(''),
 	archived			BIT				NOT NULL	DEFAULT(0)
 );
 
@@ -100,9 +99,10 @@ CREATE TABLE Plant	 (
 
 CREATE TABLE Tended (
 	tendedId			INT				NOT NULL	PRIMARY KEY		IDENTITY,
-	actionId			INT				NOT NULL	FOREIGN KEY REFERENCES ActionTbl(actionId),
-	plantId				INT				NOT NULL	FOREIGN KEY REFERENCES Plant(plantId),
-	soilCondId			INT				NOT NULL	FOREIGN KEY REFERENCES SoilCondition(soilCondId),
+	actionId			INT				NOT NULL	FOREIGN KEY		REFERENCES ActionTbl(actionId),
+	plantId				INT				NOT NULL	FOREIGN KEY		REFERENCES Plant(plantId),
+	soilCondId			INT				NOT NULL	FOREIGN KEY		REFERENCES SoilCondition(soilCondId),
+	weatherId			INT				NOT NULL	FOREIGN KEY		REFERENCES Weather(weatherId),
 	recordedDate		DATETIME		NOT NULL,
 	plantCondition		VARCHAR(30)		NOT NULL
 );
@@ -153,14 +153,14 @@ CREATE VIEW vwFertilizedList AS														-- No. 5
 	WHERE a.fertilized = 1
 GO
 
---CREATE VIEW vwPlantedList AS
---	SELECT	p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.planted
---	FROM	(plantTbl p	LEFT JOIN tendedTbl t ON p.plantId = t.plantId 
---						LEFT JOIN actionTbl a ON t.actionId = a.actionId 
---						LEFT JOIN plantTypeTbl pt ON pt.plantTypeId = p.plantTypeId
---			)
---	WHERE p.plantId = t.plantId AND a.planted = 1
---GO
+CREATE VIEW vwPlantedList AS
+	SELECT	p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.planted
+	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
+						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
+						LEFT JOIN PlantType pt ON pt.plantTypeId = p.plantTypeId
+			)
+	WHERE p.plantId = t.plantId AND a.planted = 1
+GO
 
 CREATE VIEW vwHarvestDate AS			-- projected harvest date
 	SELECT p.plantId, pt.daysToHarvest, t.recordedDate AS [datePlanted], DATEADD(day, pt.daysToHarvest, t.recordedDate) AS [harvestDate]
@@ -182,19 +182,19 @@ GO
 
 SET IDENTITY_INSERT Weather ON
 
-INSERT INTO Weather (weatherId, humidity, temperature, precipitation, overcast, windSpeed, windDirection, recordedDate) VALUES 
-(1, 37, 39, 63, 35, 25, 'SE', '5/8/2020'),
-(2, 68, 81, 46, 79, 62, 'N', '5/7/2020'),
-(3, 9, 34, 62, 68, 57, 'NE', '5/6/2020'),
-(4, 85, 123, 95, 70, 35, 'E', '5/3/2020'),
-(5, 64, 67, 12, 65, 63, 'W', '4/30/2020'),
-(6, 60, 68, 64, 5, 8, 'N', '4/21/2020'),
-(7, 88, 104, 98, 26, 37, 'W', '4/20/2020'),
-(8, 82, 100, 89, 3, 63, 'W', '4/17/2020'),
-(9, 67, 12, 50, 21, 60, 'NW', '4/12/2020'),
-(10, 20, 37, 50, 78, 4, 'NE', '4/10/2020'),
-(11, 24, 90, 49, 72, 53, 'NW', '9/23/2019'),
-(12, 57, 121, 85, 95, 23, 'N', '4/18/2020')
+INSERT INTO Weather (weatherId, humidity, temperature, precipitation, overcast, windSpeed, windDirection) VALUES 
+(1, 37, 39, 63, 35, 25, 'SE'),
+(2, 68, 81, 46, 79, 62, 'N'),
+(3, 9, 34, 62, 68, 57, 'NE'),
+(4, 85, 123, 95, 70, 35, 'E'),
+(5, 64, 67, 12, 65, 63, 'W'),
+(6, 60, 68, 64, 5, 8, 'N'),
+(7, 88, 104, 98, 26, 37, 'W'),
+(8, 82, 100, 89, 3, 63, 'W'),
+(9, 67, 12, 50, 21, 60, 'NW'),
+(10, 20, 37, 50, 78, 4, 'NE'),
+(11, 24, 90, 49, 72, 53, 'NW'),
+(12, 57, 121, 85, 95, 23, 'N')
 
 SET IDENTITY_INSERT Weather OFF
 
@@ -407,8 +407,7 @@ CREATE PROCEDURE spAddUpdateDelete_Weather
 	@precipitation		INT,	
 	@overcast			INT,	
 	@windSpeed			INT,	
-	@windDirection		VARCHAR(5),	 
-	@recordedDate		DATETIME,
+	@windDirection		VARCHAR(5),	
 	@delete				BIT = 0
 AS BEGIN
 	
@@ -419,8 +418,8 @@ BEGIN TRY
 					[success] = CAST(0 AS BIT)
 		END ELSE BEGIN
 
-		INSERT INTO Weather	(humidity, temperature, precipitation, overcast, windSpeed, windDirection, recordedDate) VALUES
-							(@humidity, @temperature, @precipitation, @overcast, @windSpeed, @windDirection, @recordedDate)
+		INSERT INTO Weather	(humidity, temperature, precipitation, overcast, windSpeed, windDirection) VALUES
+							(@humidity, @temperature, @precipitation, @overcast, @windSpeed, @windDirection)
 		SELECT	@@IDENTITY AS weatherId,
 				[success] = CAST(1 AS BIT)
 		END
@@ -444,7 +443,7 @@ BEGIN TRY
 			
 			UPDATE Weather
 			SET humidity = @humidity, temperature = @temperature, precipitation = @precipitation, 
-				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection, recordedDate = @recordedDate
+				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection,
 			WHERE weatherId = @weatherId
 
 			SELECT	@weatherId as weatherId, 
@@ -899,8 +898,6 @@ AS BEGIN
 END
 GO
 
-
-SELECT * FROM weatherTbl
 /* =====================================================================
 
 	Name:           spGetPlantConditionByDate
@@ -1004,7 +1001,7 @@ GO
 
 
 -- Add location
-	exec spAddUpdate_Location 
+	--exec spAddUpdate_Location 
 
 
 

@@ -372,7 +372,7 @@ GO
 
 exec spAddUpdateDelete_PlantType 0, 'Tomato', 'Roma', 27, 'juicy tomato', 0
 
-
+GO
 
                                     --*************** ADD/UPDATE Harvest *****************
 CREATE PROCEDURE spAddUpdate_Harvest

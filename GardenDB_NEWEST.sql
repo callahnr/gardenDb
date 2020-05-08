@@ -125,61 +125,400 @@ CREATE VIEW vwPlantList AS
 	FROM plantTbl p, plantTypeTbl pt 
 	WHERE p.plantTypeId = pt.plantTypeId AND p.archived = 0
 GO
-SELECT * FROM vwPlantList
 
-GO
 CREATE VIEW vwTypeList AS
 	SELECT pt.plantName, pt.plantBreed, pt.description
 	FROM plantTypeTbl pt
 GO
-SELECT * FROM vwTypeList
 
-GO
 CREATE VIEW vwWateredList AS
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.watered
 	FROM plantTbl p LEFT JOIN tendedTbl t ON p.plantId = t.plantId, actionTbl a, plantTypeTbl pt
 	WHERE p.plantId = t.plantId AND a.watered = 1
 GO
-SELECT * FROM vwWateredList
 
-GO
 CREATE VIEW vwDepestedList AS
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.depested
 	FROM plantTbl p LEFT JOIN tendedTbl t ON p.plantId = t.plantId, actionTbl a, plantTypeTbl pt
 	WHERE p.plantId = t.plantId AND a.depested = 1
 GO
-SELECT * FROM vwDepestedList
 
-GO
 CREATE VIEW vwFertilizedList AS
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.fertilized
 	FROM plantTbl p LEFT JOIN tendedTbl t ON p.plantId = t.plantId, actionTbl a, plantTypeTbl pt
 	WHERE p.plantId = t.plantId AND a.fertilized = 1
 GO
-SELECT * FROM vwFertilizedList
 
-GO
 CREATE VIEW vwPlantedList AS
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.planted
 	FROM plantTbl p LEFT JOIN tendedTbl t ON p.plantId = t.plantId, actionTbl a, plantTypeTbl pt
 	WHERE p.plantId = t.plantId AND a.planted = 1
 GO
-SELECT * FROM vwPlantedList
-
-GO
 
 CREATE VIEW vwHarvestDate AS
-	SELECT DISTINCT p.plantId, pt.daysToHarvest, t.recordedDate AS [datePlanted], DATEADD(day, pt.daysToHarvest, t.recordedDate) AS [harvestDate]
-	FROM plantTbl p JOIN plantTypeTbl pt ON p.plantTypeId = pt.plantTypeId, tendedTbl t JOIN actionTbl a on t.actionId = a.actionId
+	SELECT p.plantId, pt.daysToHarvest, t.recordedDate AS [datePlanted], DATEADD(day, pt.daysToHarvest, t.recordedDate) AS [harvestDate]
+	FROM plantTbl p LEFT JOIN plantTypeTbl pt ON p.plantTypeId = pt.plantTypeId, tendedTbl t LEFT JOIN actionTbl a on t.actionId = a.actionId
+	WHERE p.plantId = t.plantId
 GO
-SELECT * FROM vwHarvestDate
 
-GO
 CREATE VIEW vwPlantLocation AS
 	SELECT p.plantId, l.fieldName, l.fieldColumn, l.fieldRow 
 	FROM plantTbl p JOIN locationTbl l on p.locationId = l.locationId
+
+
+/************************************************************************************************************  
+												STORED PROCEEDURES
+*************************************************************************************************************/
+/* =====================================================================
+
+	Name:           spAddUpdateArchivePlant
+	Purpose:        Adds/Updates/Archives a plant to/from the database
+
+======================================================================== */
 GO
-SELECT * FROM vwPlantLocation
+
+CREATE PROCEDURE spAddUpdateArchivePlant
+	@plantId		INT,
+	@plantTypeId	INT,
+	@harvestId		INT,
+	@tendedId		INT,
+	@locationId		INT,
+	@archived		INT
+		
+AS BEGIN
+									-- ADD PLANT
+	IF(@plantId = 0) BEGIN   
+		IF EXISTS(SELECT TOP(1) NULL FROM plantTbl WHERE plantId = @plantId)  BEGIN
+			SELECT -1 AS plantId
+			PRINT 'PLANT-ID ALREADY EXISTS'
+		END
+		ELSE BEGIN
+			INSERT INTO plantTbl	(plantTypeId, harvestId, tendedId, locationId) VALUES 
+								(@plantTypeId, @harvestId, @tendedId, @locationId)	
+
+			SELECT @@IDENTITY AS plantId
+		END
+	END 
+
+	ELSE IF(@archived = 1) BEGIN  -- ARCHIVE PLANT PROFILE
+
+		IF NOT EXISTS (SELECT NULL FROM plantTbl WHERE plantId = @plantId) BEGIN
+			SELECT -1 AS plantId
+			PRINT 'PLANT-ID DOES NOT EXIST'
+		END ELSE
+
+----CHECKS IF PLANT ID IS LINKED IN OTHER TABLES AND SOFT DELETS IF TRUE----
+		IF	EXISTS (SELECT TOP(1) NULL FROM tendedTbl 
+			WHERE plantId = @plantId) BEGIN
+				UPDATE	Plants 
+				SET		archived = 1 
+				WHERE	plantId = @plantId 
+				SELECT @plantId AS plantId
+				PRINT 'PLANT ARCHIVED'
+		END
+
+----HARD DELETES ROW IF PLANT ID IS NOT LINKED TO ANY OTHER TABLES----
+		ELSE BEGIN
+			DELETE FROM plantTbl WHERE plantId = @plantId
+			PRINT 'PLANT-ID HARD DELETED'
+		END
+	END
+END
+
+/* =====================================================================
+
+	Name:           spAddUpdateArchivePlantType
+	Purpose:        Adds/Updates/Archives a plant type to/from the database
+
+======================================================================== */
+GO
+
+	CREATE PROCEDURE spAddUpdateArchivePlantType
+		@plantTypeId			INT,
+		@plantName				VARCHAR(40),
+		@plantBreed				VARCHAR(40),
+		@daysToHarvest			INT,
+		@description			VARCHAR(100),
+		@archived				INT
+AS BEGIN
+
+	IF(@plantTypeId = 0) 
+		BEGIN   
+			IF EXISTS(SELECT TOP(1) NULL FROM plantTbl
+			WHERE plantTypeId = @plantTypeId)  
+			BEGIN
+				SELECT -1 AS plantTypeId
+				PRINT 'PLANT-TYPE-ID ALREADY EXISTS'
+			END
+		ELSE 
+			BEGIN
+				INSERT INTO plantTypeTbl (
+					plantTypeId,	
+					plantName,
+					plantBreed,	
+					daysToHarvest,
+					[description]	
+				)
+				VALUES (
+					@plantTypeId,
+					@plantName,
+					@plantBreed,
+					@daysToHarvest,
+					@description
+				)
+				SELECT @@IDENTITY AS plantTypeId
+			END
+		END
+
+	ELSE IF(@archived = 1) 
+	BEGIN
+
+		IF NOT EXISTS (SELECT NULL FROM plantTypeTbl WHERE plantTypeId = @plantTypeId) 
+		BEGIN
+			SELECT -1 AS plantTypeId
+			PRINT 'PLANT-TYPE-ID DOES NOT EXIST'
+		END 
+		ELSE
+
+		IF	EXISTS (SELECT TOP(1) NULL FROM plantTbl 
+			WHERE plantTypeId = @plantTypeId)
+		BEGIN
+				UPDATE	plantTypeTbl 
+				SET		archived = 1 
+				WHERE	plantTypeId = @plantTypeId 
+				SELECT @plantTypeId AS plantTypeId
+				PRINT 'PLANT-TYPE ARCHIVED'
+		END
+
+		ELSE BEGIN
+			DELETE FROM plantTypeId WHERE plantTypeId = @plantTypeId
+			PRINT 'PLANT-TYPE-ID HARD DELETED'
+		END
+	END
+END
+
+
+/* =====================================================================
+
+	Name:           spAddUpdateDelete_Weather
+	Purpose:        Adds/Updates/Deletes weather entries to/from the database
+
+======================================================================== */
+Go
+CREATE PROCEDURE spAddUpdateArchive_Weather
+	@weatherId			INT,	
+	@humidity			INT,	
+	@temperature		INT,			
+	@precipitation		INT,	
+	@overcast			INT,	
+	@windSpeed			INT,	
+	@windDirection		CHAR,	 
+	@recordedDate		DATETIME,
+	@archive			BIT = 0
+AS BEGIN
+	
+BEGIN TRY
+	IF(@weatherId = 0) BEGIN			-- ADD weather
+		IF EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
+			SELECT	[message] = 'Weather ID already exists',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+
+		INSERT INTO weatherTbl	(humidity, temperature, precipitation, overcast, windSpeed, windDirection, recordedDate) VALUES
+							(@humidity, @temperature, @precipitation, @overcast, @windSpeed, @windDirection, @recordedDate)
+		SELECT	@@IDENTITY AS weatherId,
+				[success] = CAST(1 AS BIT)
+		END
+
+	END ELSE IF(@archive = 1) BEGIN		-- DELETE weather
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
+			SELECT	[message] = 'Weather ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+
+			DELETE FROM weatherTbl WHERE weatherId = @weatherId
+			SELECT	0 as weatherId, 
+					[success] = CAST(1 AS BIT)
+		END
+
+	END ELSE BEGIN						-- UPDATE weather
+		IF NOT EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
+			SELECT	[message] = 'Weather ID does not exist',
+					[success] = CAST(0 AS BIT)
+		END ELSE BEGIN
+			
+			UPDATE weatherTbl
+			SET humidity = @humidity, temperature = @temperature, precipitation = @precipitation, 
+				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection, recordedDate = @recordedDate
+			WHERE weatherId = @weatherId
+
+			SELECT	@weatherId as weatherId, 
+					[success] = CAST(1 AS BIT)
+		END
+
+	END
+END TRY BEGIN CATCH
+	
+	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
+
+END CATCH
+
+	IF(@@TRANCOUNT > 0) COMMIT TRAN
+
+END
+
+
+/* =====================================================================
+
+	Name:           spGetPlantBreedByName
+	Purpose:        Gets a list of all plants from the database by name.
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetPlantBreedByName
+	@plantBreedName		VARCHAR(64),
+	@hardMatch			BIT = 0
+AS BEGIN
+	IF (@hardMatch = 1) BEGIN
+		SELECT *
+		FROM vwTypeList tl
+		WHERE tl.plantBreed = @plantBreedName
+	END ELSE BEGIN
+		SELECT *
+		FROM vwTypeList tl
+		WHERE tl.plantBreed LIKE CONCAT('%', @plantBreedName, '%')
+	END
+END
+GO
+
+/* =====================================================================
+
+	Name:           spGetPlantByTypeName
+	Purpose:        Gets a list of all plants from the database by name.
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetPlantByTypeName
+	@plantType				VARCHAR(64),
+	@hardMatch				BIT = 0
+AS BEGIN
+	IF (@hardMatch = 1) BEGIN
+		SELECT *
+		FROM vwTypeList tl
+		WHERE tl.plantName = @plantType
+	END ELSE BEGIN
+		SELECT *
+		FROM vwTypeList tl
+		WHERE tl.plantName LIKE CONCAT('%', @plantType, '%')
+	END
+END
+GO
+
+/* =====================================================================
+
+	Name:           spGetWeatherByDate
+	Purpose:        Get all weather data between a date range
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetWeatherByDate
+	@startDate				DATETIME,
+	@endDate				DATETIME
+AS BEGIN
+		SELECT *
+		FROM weatherTbl	w
+		WHERE w.recordedDate BETWEEN @startDate AND @endDate
+END
+GO
+
+
+SELECT * FROM weatherTbl
+/* =====================================================================
+
+	Name:           spGetPlantConditionByDate
+	Purpose:        Get all plant conditions between a date range
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetPlantConditionByDate
+	@startDate				DATETIME,
+	@endDate				DATETIME
+AS BEGIN
+		SELECT t.plantId, t.recordedDate, t.plantCondition
+		FROM tendedTbl t
+		WHERE t.recordedDate BETWEEN @startDate AND @endDate
+END
+GO
+
+
+/* =====================================================================
+
+	Name:           spGetLocByPlantType
+	Purpose:        Get all weather data between a date range
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetLocByPlantType
+		@plantType		VARCHAR(64)
+AS BEGIN
+		SELECT DISTINCT pl.*, pt.plantName
+		FROM vwPlantLocation pl LEFT JOIN plantTbl p ON pl.plantId = p.plantTypeId, plantTypeTbl pt
+		WHERE pt.plantName LIKE CONCAT('%', 'Tomato', '%')
+END
+GO
+
+
+/* =====================================================================
+
+	Name:           spGetLocByPlantType
+	Purpose:        Get all weather data between a date range
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetSoilListByPh(
+		@startRange		FLOAT,
+		@endRange		FLOAT
+		)
+AS BEGIN
+		DECLARE @start	FLOAT,
+				@end	FLOAT
+		SET		@start = @startRange
+		SET		@end = @endRange
+		SELECT sc.*
+		FROM soilConditionTbl sc
+		WHERE sc.pH BETWEEN @start AND @end
+END
+GO
+/* =====================================================================
+
+	Name:           spGetHarvestsByDateRange
+	Purpose:        Get all weather data between a date range
+
+======================================================================== */
+GO
+CREATE PROCEDURE spGetHarvestsByDateRange
+	@startDate				DATETIME,
+	@endDate				DATETIME
+AS BEGIN
+		DECLARE @start	DATETIME,
+				@end	DATETIME
+		SET		@start = @startDate
+		SET		@end = @endDate
+		SELECT hd.plantId, hd.harvestDate
+		FROM vwHarvestDate hd
+		WHERE hd.harvestDate BETWEEN @start AND @end
+		GROUP BY hd.plantId, hd.harvestDate
+END
+GO
+
+
+
+SELECT * FROM weatherTbl
+
+
+GO
+
+--spErrorRecord --Record database errors
 /************************************************************************************************************  
 												INSERT DATA
 *************************************************************************************************************/
@@ -1362,331 +1701,20 @@ VALUES
 SET IDENTITY_INSERT tendedTbl OFF
 SELECT * FROM tendedTbl 
 
-/************************************************************************************************************  
-												STORED PROCEEDURES
-*************************************************************************************************************/
-/* =====================================================================
-
-	Name:           spAddUpdateArchivePlant
-	Purpose:        Adds/Updates/Archives a plant to/from the database
-
-======================================================================== */
-GO
-
-CREATE PROCEDURE spAddUpdateArchivePlant
-	@plantId		INT,
-	@plantTypeId	INT,
-	@harvestId		INT,
-	@tendedId		INT,
-	@locationId		INT,
-	@archived		INT
-		
-AS BEGIN
-									-- ADD PLANT
-	IF(@plantId = 0) BEGIN   
-		IF EXISTS(SELECT TOP(1) NULL FROM plantTbl WHERE plantId = @plantId)  BEGIN
-			SELECT -1 AS plantId
-			PRINT 'PLANT-ID ALREADY EXISTS'
-		END
-		ELSE BEGIN
-			INSERT INTO plantTbl	(plantTypeId, harvestId, tendedId, locationId) VALUES 
-								(@plantTypeId, @harvestId, @tendedId, @locationId)	
-
-			SELECT @@IDENTITY AS plantId
-		END
-	END 
-
-	ELSE IF(@archived = 1) BEGIN  -- ARCHIVE PLANT PROFILE
-
-		IF NOT EXISTS (SELECT NULL FROM plantTbl WHERE plantId = @plantId) BEGIN
-			SELECT -1 AS plantId
-			PRINT 'PLANT-ID DOES NOT EXIST'
-		END ELSE
-
-----CHECKS IF PLANT ID IS LINKED IN OTHER TABLES AND SOFT DELETS IF TRUE----
-		IF	EXISTS (SELECT TOP(1) NULL FROM tendedTbl 
-			WHERE plantId = @plantId) BEGIN
-				UPDATE	Plants 
-				SET		archived = 1 
-				WHERE	plantId = @plantId 
-				SELECT @plantId AS plantId
-				PRINT 'PLANT ARCHIVED'
-		END
-
-----HARD DELETES ROW IF PLANT ID IS NOT LINKED TO ANY OTHER TABLES----
-		ELSE BEGIN
-			DELETE FROM plantTbl WHERE plantId = @plantId
-			PRINT 'PLANT-ID HARD DELETED'
-		END
-	END
-END
-
-/* =====================================================================
-
-	Name:           spAddUpdateArchivePlantType
-	Purpose:        Adds/Updates/Archives a plant type to/from the database
-
-======================================================================== */
-GO
-
-	CREATE PROCEDURE spAddUpdateArchivePlantType
-		@plantTypeId			INT,
-		@plantName				VARCHAR(40),
-		@plantBreed				VARCHAR(40),
-		@daysToHarvest			INT,
-		@description			VARCHAR(100),
-		@archived				INT
-AS BEGIN
-
-	IF(@plantTypeId = 0) 
-		BEGIN   
-			IF EXISTS(SELECT TOP(1) NULL FROM plantTbl
-			WHERE plantTypeId = @plantTypeId)  
-			BEGIN
-				SELECT -1 AS plantTypeId
-				PRINT 'PLANT-TYPE-ID ALREADY EXISTS'
-			END
-		ELSE 
-			BEGIN
-				INSERT INTO plantTypeTbl (
-					plantTypeId,	
-					plantName,
-					plantBreed,	
-					daysToHarvest,
-					[description]	
-				)
-				VALUES (
-					@plantTypeId,
-					@plantName,
-					@plantBreed,
-					@daysToHarvest,
-					@description
-				)
-				SELECT @@IDENTITY AS plantTypeId
-			END
-		END
-
-	ELSE IF(@archived = 1) 
-	BEGIN
-
-		IF NOT EXISTS (SELECT NULL FROM plantTypeTbl WHERE plantTypeId = @plantTypeId) 
-		BEGIN
-			SELECT -1 AS plantTypeId
-			PRINT 'PLANT-TYPE-ID DOES NOT EXIST'
-		END 
-		ELSE
-
-		IF	EXISTS (SELECT TOP(1) NULL FROM plantTbl 
-			WHERE plantTypeId = @plantTypeId)
-		BEGIN
-				UPDATE	plantTypeTbl 
-				SET		archived = 1 
-				WHERE	plantTypeId = @plantTypeId 
-				SELECT @plantTypeId AS plantTypeId
-				PRINT 'PLANT-TYPE ARCHIVED'
-		END
-
-		ELSE BEGIN
-			DELETE FROM plantTypeId WHERE plantTypeId = @plantTypeId
-			PRINT 'PLANT-TYPE-ID HARD DELETED'
-		END
-	END
-END
-
-
-/* =====================================================================
-
-	Name:           spAddUpdateDelete_Weather
-	Purpose:        Adds/Updates/Deletes weather entries to/from the database
-
-======================================================================== */
-Go
-CREATE PROCEDURE spAddUpdateArchive_Weather
-	@weatherId			INT,	
-	@humidity			INT,	
-	@temperature		INT,			
-	@precipitation		INT,	
-	@overcast			INT,	
-	@windSpeed			INT,	
-	@windDirection		CHAR,	 
-	@recordedDate		DATETIME,
-	@archive			BIT = 0
-AS BEGIN
-	
-BEGIN TRY
-	IF(@weatherId = 0) BEGIN			-- ADD weather
-		IF EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
-			SELECT	[message] = 'Weather ID already exists',
-					[success] = CAST(0 AS BIT)
-		END ELSE BEGIN
-
-		INSERT INTO weatherTbl	(humidity, temperature, precipitation, overcast, windSpeed, windDirection, recordedDate) VALUES
-							(@humidity, @temperature, @precipitation, @overcast, @windSpeed, @windDirection, @recordedDate)
-		SELECT	@@IDENTITY AS weatherId,
-				[success] = CAST(1 AS BIT)
-		END
-
-	END ELSE IF(@archive = 1) BEGIN		-- DELETE weather
-		IF NOT EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
-			SELECT	[message] = 'Weather ID does not exist',
-					[success] = CAST(0 AS BIT)
-		END ELSE BEGIN
-
-			DELETE FROM weatherTbl WHERE weatherId = @weatherId
-			SELECT	0 as weatherId, 
-					[success] = CAST(1 AS BIT)
-		END
-
-	END ELSE BEGIN						-- UPDATE weather
-		IF NOT EXISTS (SELECT TOP(1) NULL FROM weatherTbl WHERE weatherId = @weatherId) BEGIN
-			SELECT	[message] = 'Weather ID does not exist',
-					[success] = CAST(0 AS BIT)
-		END ELSE BEGIN
-			
-			UPDATE weatherTbl
-			SET humidity = @humidity, temperature = @temperature, precipitation = @precipitation, 
-				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection, recordedDate = @recordedDate
-			WHERE weatherId = @weatherId
-
-			SELECT	@weatherId as weatherId, 
-					[success] = CAST(1 AS BIT)
-		END
-
-	END
-END TRY BEGIN CATCH
-	
-	IF(@@TRANCOUNT > 0) ROLLBACK TRAN
-
-END CATCH
-
-	IF(@@TRANCOUNT > 0) COMMIT TRAN
-
-END
-GO
-
-/* =====================================================================
-
-	Name:           spGetPlantBreedByName
-	Purpose:        Gets a list of all plants from the database by name.
-
-======================================================================== */
-GO
-CREATE PROCEDURE spGetPlantBreedByName
-	@plantBreedName		VARCHAR(64),
-	@hardMatch			BIT = 0
-AS BEGIN
-	IF (@hardMatch = 1) BEGIN
-		SELECT *
-		FROM vwTypeList tl
-		WHERE tl.plantBreed = @plantBreedName
-	END ELSE BEGIN
-		SELECT *
-		FROM vwTypeList tl
-		WHERE tl.plantBreed LIKE CONCAT('%', @plantBreedName, '%')
-	END
-END
-GO
-
-
-
-/* =====================================================================
-
-	Name:           spGetPlantByTypeName
-	Purpose:        Gets a list of all plants from the database by name.
-
-======================================================================== */
-GO
-CREATE PROCEDURE spGetPlantByTypeName
-	@plantType				VARCHAR(64),
-	@hardMatch				BIT = 0
-AS BEGIN
-	IF (@hardMatch = 1) BEGIN
-		SELECT *
-		FROM vwTypeList tl
-		WHERE tl.plantName = @plantType
-	END ELSE BEGIN
-		SELECT *
-		FROM vwTypeList tl
-		WHERE tl.plantName LIKE CONCAT('%', @plantType, '%')
-	END
-END
-GO
-
-/* =====================================================================
-
-	Name:           spGetWeatherByDate
-	Purpose:        Get all weather data between a date range
-
-======================================================================== */
-GO
-CREATE PROCEDURE spGetWeatherByDate
-	@startDate				DATETIME,
-	@endDate				DATETIME
-AS BEGIN
-		SELECT *
-		FROM weatherTbl	w
-		WHERE w.recordedDate BETWEEN @startDate AND @endDate
-END
-GO
-
-
-SELECT * FROM weatherTbl
-/* =====================================================================
-
-	Name:           spGetPlantConditionByDate
-	Purpose:        Get all plant conditions between a date range
-
-======================================================================== */
-GO
-CREATE PROCEDURE spGetPlantConditionByDate
-	@startDate				DATETIME,
-	@endDate				DATETIME
-AS BEGIN
-		SELECT t.plantId, t.recordedDate, t.plantCondition
-		FROM tendedTbl t
-		WHERE t.recordedDate BETWEEN @startDate AND @endDate
-END
-GO
-
-
-/* =====================================================================
-
-	Name:           spGetLocByPlantType
-	Purpose:        Get all weather data between a date range
-
-======================================================================== */
---spGetLocByPlantType --Get the locations (col, row, field) of all plants of a type
-GO
-CREATE PROCEDURE spGetLocByPlantType
-		@plantType		VARCHAR(64)
-AS BEGIN
-		SELECT DISTINCT pl.*, pt.plantName
-		FROM vwPlantLocation pl LEFT JOIN plantTbl p ON pl.plantId = p.plantTypeId, plantTypeTbl pt
-		WHERE pt.plantName LIKE CONCAT('%', 'Tomato', '%')
-END
-GO
-
-
-
---spGetPlantsTendedByDate --Get a list of all plants tended on a specific day
---spGetHarvestByPlantType --Get a sum of all harvests by plant type
---spGetHarvestByPlant --Get the harvest of an individual plant
---spGetSoilByPlant --Get soil conditions of a plant listed by date
---spGetSoilListByPh --Get soil list by pH range ordered by location
---spGetPhotosByType --Get all photos (path/to/photos) returned by plant type
---spAddDeletePhoto --Add/Delete photos (path/to/photos) of a specific plant or type
---spErrorRecord --Record database errors
 
 /************************************************************************************************************  
 												TEST PROCEDURES
 *************************************************************************************************************/
+EXEC spGetSoilListByPh 0.0, 5.0;
 EXEC spGetLocByPlantType 'omat';
 EXEC spGetPlantConditionByDate '12/8/2019', '12/31/2019'
 EXEC spGetWeatherByDate '12/8/2019', '12/31/2019'
+EXEC spGetHarvestsByDateRange '12/31/2019', '5/8/2020';
 EXEC spGetPlantByTypeName 'Tomato', 1 --Hard Match Test
 EXEC spGetPlantByTypeName 'umbe', 0 --Soft Match Test
 EXEC spGetPlantBreedByName 'Roma', 1 --Hard Match Test
 EXEC spGetPlantBreedByName 'Gold', 0 --Soft Match Test
 EXEC spAddUpdateArchive_Weather 0, 65, 2, 33, 5, 2, 'N', '5/8/2020'; -- Add Weather Test
+EXEC spAddUpdateArchive_Weather 0, 20, 3, 27, 2, 5, 'N', '5/8/2020'; -- Add Another So we can delete one
 EXEC spAddUpdateArchive_Weather 1, 10, 1, 12, 0, 1, 'S', '5/5/2020'; -- Update Weather Test
 EXEC spAddUpdateArchive_Weather 1, 10, 1, 12, 0, 1, 'S', '5/5/2020', 1; -- DELETE from Weather Test

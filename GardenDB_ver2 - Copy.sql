@@ -120,8 +120,6 @@ GO
 
 
 
-
-
 SET IDENTITY_INSERT SoilCondition ON
 INSERT INTO SoilCondition (soilCondId, recordedDate, pH, moistureLvl, nitrogenLvl, phosoLvl) 
 VALUES 

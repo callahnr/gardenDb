@@ -108,23 +108,23 @@ CREATE TABLE Harvest (
 GO
 
 
-/************************************************************************************************************  
-												CREATE VIEWS
-*************************************************************************************************************/
-CREATE VIEW vwPlantList AS															-- No. 1
+/***********************************************************************************  
+						CREATE VIEWS
+************************************************************************************/
+CREATE VIEW vwPlantList AS	
 	SELECT p.plantId, pt.plantName, pt.plantBreed, pt.[description]
 	FROM Plant p, PlantType pt 
 	WHERE p.plantTypeId = pt.plantTypeId AND p.archived = 0
 GO
 
 
-CREATE VIEW vwTypeList AS															-- No. 2
+CREATE VIEW vwTypeList AS					
 	SELECT pt.plantName, pt.plantBreed, pt.description
 	FROM plantType pt
 GO
 
 
-CREATE VIEW vwWateredList AS														-- No. 3
+CREATE VIEW vwWateredList AS	
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.watered
 	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
 						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
@@ -134,7 +134,7 @@ CREATE VIEW vwWateredList AS														-- No. 3
 GO
 
 
-CREATE VIEW vwDepestedList AS														-- No. 4
+CREATE VIEW vwDepestedList AS	
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.watered
 	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
 						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
@@ -143,7 +143,7 @@ CREATE VIEW vwDepestedList AS														-- No. 4
 	WHERE a.depested = 1
 GO
 
-CREATE VIEW vwFertilizedList AS														-- No. 5
+CREATE VIEW vwFertilizedList AS		
 	SELECT DISTINCT p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.watered
 	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
 						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
@@ -152,7 +152,7 @@ CREATE VIEW vwFertilizedList AS														-- No. 5
 	WHERE a.fertilized = 1
 GO
 
-CREATE VIEW vwPlantedList AS														-- No. 6
+CREATE VIEW vwPlantedList AS	
 	SELECT	p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.planted
 	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
 						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
@@ -161,119 +161,25 @@ CREATE VIEW vwPlantedList AS														-- No. 6
 	WHERE a.planted = 1
 GO
 
-CREATE VIEW vwHarvestDate AS			-- projected harvest date					-- No. 7
+CREATE VIEW vwHarvestDate AS			-- projected harvest date
 	SELECT p.plantId, pt.daysToHarvest, t.recordedDate AS [datePlanted], DATEADD(day, pt.daysToHarvest, t.recordedDate) AS [harvestDate]
-	FROM Plant p LEFT JOIN PlantType pt ON p.plantTypeId = pt.plantTypeId, Tended t 
+	FROM Plant p	LEFT JOIN PlantType pt ON p.plantTypeId = pt.plantTypeId, Tended t 
 					LEFT JOIN ActionTbl a on t.actionId = a.actionId
 
 	WHERE p.plantId = t.plantId
 GO
 
-CREATE VIEW vwPlantLocation AS														-- No. 8
+CREATE VIEW vwPlantLocation AS		
 	SELECT p.plantId, l.fieldName, l.fieldColumn, l.fieldRow 
 	FROM Plant p JOIN LocationTbl l on p.locationId = l.locationId
-
 GO
 
-/********************************************************************************************************************************************
-																INSERT DATA
-*********************************************************************************************************************************************/
+/* =====================================================================
 
---SET IDENTITY_INSERT Weather ON
+	Name:           spAddUpdateDelete_Weather
+	Purpose:        Add or Update or Delete a Weather Record
 
---INSERT INTO Weather (weatherId, humidity, temperature, precipitation, overcast, windSpeed, windDirection) VALUES 
---(1, 37, 39, 63, 35, 25, 'SE'),
---(2, 68, 81, 46, 79, 62, 'N'),
---(3, 9, 34, 62, 68, 57, 'NE'),
---(4, 85, 123, 95, 70, 35, 'E'),
---(5, 64, 67, 12, 65, 63, 'W'),
---(6, 60, 68, 64, 5, 8, 'N'),
---(7, 88, 104, 98, 26, 37, 'W'),
---(8, 82, 100, 89, 3, 63, 'W'),
---(9, 67, 12, 50, 21, 60, 'NW'),
---(10, 20, 37, 50, 78, 4, 'NE'),
---(11, 24, 90, 49, 72, 53, 'NW'),
---(12, 57, 121, 85, 95, 23, 'N')
-
---SET IDENTITY_INSERT Weather OFF
-
---Select * from Weather
-
-
---INSERT INTO plantType (plantName, plantBreed, daysToHarvest, [description] ) VALUES 
---('Cilantro', 'Common', 45 , 'The highly aromatic, rich and spicy Cilantro adds the perfect flavor to any cuisine! This plant is ideal for harvesting both the cilantro leaves and coriander seeds. The unique flavor of this cilantro is bold and bright with a touch of citrus undertones.'),
---('Cilantro', 'Coriandrum sativum', 80 , 'Coriander is an annual herb in the family Apiaceae. It is also known as Chinese parsley, and in the United States the stems and leaves are usually called cilantro'),
---('Corn', 'Bilicious Hybrid', 78, 'Bi-Licious is an excellent mid-season hybrid with bi-colored kernels maturing in 75 or more days. Ears are 8 1/2 inches with 16 rows of kernels. Corn is a warm season crop. Pollination is essential for success so corn needs to be planted in a block of three rows of 12-24 plants (rather than one row).'),
---('Kohlrabi', 'Early White Vienna', 55, 'Round, above-ground "bulbs" with light green, smooth skin have creamy white, tender flesh. Flavor is mild, sweet, turnip-like. Superb raw or steamed. Ready for harvest 55 days from seed sowing.'),
---('Hot Pepper', 'Jalapeno Early', 80, 'Cooks Garden Favorite. Dark green, pungent 3" hot peppers are excellent fresh or pickled. Zesty flavor is great in Mexican dishes.'),
---('Watermelon', 'Orange Tendersweet', 90, 'This heirloom favorite features luscious, bright orange flesh. Tender and very sweet, the oblong striped fruits grow to 35 lb.'),
---('Cucumber', 'PickelBush', 70, 'Burpee-bred Picklebush has unbelievably compact vines that get only 2 long. White-spined fruits have classic pickle look, deep green with paler stripes. Up to 4 1/2" long, 1 1/2" across at maturity, but use them at any size. Very productive and tolerant to powdery mildew and cucumber mosaic virus.'),
---('Tomato', 'Roma ', 80, 'Compact plants produce paste-type tomatoes resistant to Verticillium and Fusarium wilts. Meaty interiors and few seeds. GARDEN HINTS: Fertilize when first fruits form to increase yield. Water deeply once a week during very dry weather. We searched the world to find the best organic seed-Burpee fully guarantees that not a drop of synthetic chemicals was used to make these excellent seeds.')
-
---select * from PlantType
-
-
-
---SET IDENTITY_INSERT locationTbl ON
---INSERT INTO locationTbl  (locationId, fieldName, fieldColumn, fieldRow) VALUES 
---(1, 'NORTH',   1, 1),
---(2, 'NORTH',   1, 2),
---(3, 'NORTH',   1, 3),
---(4, 'NORTH',   1, 4),
---(5, 'NORTH',   1, 5),
---(6, 'NORTH',   1, 6),
---(7, 'NORTH',   1, 7),
---(8, 'NORTH',   1, 8),
---(9, 'NORTH',   1, 9),
---(10, 'NORTH',  1, 10),
---(11, 'NORTH',  1, 11),
---(12, 'NORTH',  1, 12)
---SET IDENTITY_INSERT locationTbl OFF
-
---select * from LocationTbl
-
-
-
-
-
---SET IDENTITY_INSERT Plant ON
---INSERT INTO Plant (plantId, plantTypeId, locationId) VALUES 
---(1,   1,  1),
---(2,   2,  2),
---(3,   5,  3),
---(4,   4,  4),
---(5,   4,  5),
---(6,   5,  6),
---(7,   2,  7),
---(8,   3,  8),
---(9,   6,  9),
---(10,  1, 10),
---(11,  2, 11)
---SET IDENTITY_INSERT Plant OFF
-
-
-
-
---SET IDENTITY_INSERT Harvest ON
---INSERT INTO Harvest (harvestId, plantId, recordedDate, numHarvest, numWaste) 
---VALUES 
---(1,	1, '6/10/2020', 8, 18),
---(2,	2, '11/15/2020', 51, 3),
---(3, 3, '12/10/2020', 48, 8),
---(4, 4, '11/13/2020', 86, 16),
---(5, 5, '10/28/2020', 88, 6),
---(6, 6, '2/5/2020', 62, 14)
---SET IDENTITY_INSERT Harvest OFF
-
---GO
-
-
-/*=====================================================================================================================================
-														 STORED PROCEEDURES
-  =====================================================================================================================================*/
-
-
-                                    --*************** ADD/UPDATE/DELETE Weather *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdateDelete_Weather
 	@weatherId			INT,	
 	@humidity			INT,	
@@ -286,7 +192,7 @@ CREATE PROCEDURE spAddUpdateDelete_Weather
 AS BEGIN
 	
 BEGIN TRY
-	IF(@weatherId = 0) BEGIN			-- ADD weather
+	IF(@weatherId = 0) BEGIN		
 		IF EXISTS (SELECT TOP(1) NULL FROM Weather WHERE weatherId = @weatherId) BEGIN
 			SELECT	[message] = 'Weather ID already exists',
 					[success] = CAST(0 AS BIT)
@@ -298,7 +204,7 @@ BEGIN TRY
 				[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE IF(@delete = 1) BEGIN		-- DELETE weather
+	END ELSE IF(@delete = 1) BEGIN	
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM Weather WHERE weatherId = @weatherId) BEGIN
 			SELECT	[message] = 'Weather ID does not exist',
 					[success] = CAST(0 AS BIT)
@@ -309,7 +215,7 @@ BEGIN TRY
 					[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE BEGIN						-- UPDATE weather
+	END ELSE BEGIN	
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM Weather WHERE weatherId = @weatherId) BEGIN
 			SELECT	[message] = 'Weather ID does not exist',
 					[success] = CAST(0 AS BIT)
@@ -336,9 +242,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdateDelete_PlantType
+	Purpose:        Add or Update or Delete a PlantType Record
 
-									  --*************** ADD/UPDATE/DELETE PlantType *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdateDelete_PlantType
 	@plantTypeId		INT,	
 	@plantName			VARCHAR(40),
@@ -349,7 +258,7 @@ CREATE PROCEDURE spAddUpdateDelete_PlantType
 AS BEGIN
 
 BEGIN TRY
-	IF(@plantTypeId = 0) BEGIN			-- ADD plantType
+	IF(@plantTypeId = 0) BEGIN	
 		IF EXISTS (SELECT TOP(1) NULL FROM PlantType WHERE PlantTypeId = @plantTypeId) BEGIN
 			SELECT	[message] = 'plantType ID already exists',
 					[success] = CAST(0 AS BIT)
@@ -361,7 +270,7 @@ BEGIN TRY
 				[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE IF(@delete = 1) BEGIN		-- SOFT DELETE plantType
+	END ELSE IF(@delete = 1) BEGIN	
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM PlantType WHERE PlantTypeId = @plantTypeId) BEGIN
 			SELECT	[message] = 'plantType ID does not exist',
 					[success] = CAST(0 AS BIT)
@@ -373,7 +282,7 @@ BEGIN TRY
 					[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE BEGIN						-- UPDATE plantType
+	END ELSE BEGIN		
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM PlantType WHERE PlantTypeId = @plantTypeId) BEGIN
 			SELECT	[message] = 'plantType ID does not exist',
 					[success] = CAST(0 AS BIT)
@@ -399,11 +308,12 @@ END CATCH
 END
 GO
 
---exec spAddUpdateDelete_PlantType 0, 'Tomato', 'Roma', 27, 'juicy tomato', 0
+/* =====================================================================
 
+	Name:           spAddUpdate_Harvest
+	Purpose:        Add or Update a Harvest Record
 
-
-                                    --*************** ADD/UPDATE Harvest *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdate_Harvest
 	@harvestId			INT,	
 	@plantId			INT,	
@@ -413,7 +323,7 @@ CREATE PROCEDURE spAddUpdate_Harvest
 AS BEGIN
 
 	BEGIN TRY
-	IF(@harvestId = 0) BEGIN			-- ADD Harvest
+	IF(@harvestId = 0) BEGIN			
 		IF EXISTS (SELECT TOP(1) NULL FROM Harvest WHERE harvestId = @harvestId) BEGIN
 			SELECT	[message] = 'harvest ID already exists',
 					[success] = CAST(0 AS BIT)
@@ -425,7 +335,7 @@ AS BEGIN
 				[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE BEGIN						-- UPDATE Harvest
+	END ELSE BEGIN				
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM Harvest WHERE harvestId = @harvestId) BEGIN
 			SELECT	[message] = 'harvest ID does not exist',
 					[success] = CAST(0 AS BIT)
@@ -449,9 +359,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdate_Action
+	Purpose:        Add or Update an Action Record
 
-                                  --*************** ADD/UPDATE Action *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdate_Action
 	@actionId			INT,
 	@planted			BIT,
@@ -492,12 +405,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdate_Location
+	Purpose:        Add or Update or Delete a Location Record
 
-
-
-
-                                  --*************** ADD/UPDATE/DELETE Location *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdate_Location
 	@locationId			INT,		
 	@fieldName			VARCHAR(30),
@@ -507,14 +420,13 @@ CREATE PROCEDURE spAddUpdate_Location
 AS BEGIN
 
 BEGIN TRY
-	IF(@locationId = 0) BEGIN			   -- ADD Location
-
+	IF(@locationId = 0) BEGIN
 		INSERT INTO LocationTbl(fieldName, fieldColumn, fieldRow) VALUES
 							   (@fieldName, @fieldColumn, @fieldRow)
 		SELECT	@@IDENTITY AS locationId,
 				[success] = CAST(1 AS BIT)
 
-	END ELSE IF(@delete = 1) BEGIN		-- DELETE Location
+	END ELSE IF(@delete = 1) BEGIN	
 		
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM Location WHERE locationId = @locationId) BEGIN
 			SELECT	[message] = 'ID does not exist',
@@ -526,7 +438,7 @@ BEGIN TRY
 					[success] = CAST(1 AS BIT)
 		END
 
-	END ELSE BEGIN						-- UPDATE Location
+	END ELSE BEGIN		
 
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM Location WHERE locationId = @locationId) BEGIN
 			SELECT	[message] = 'Location ID does not exist',
@@ -552,11 +464,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdate_SoilCondition
+	Purpose:        Add or Update or Delete a SoilCondtion Record
 
-
-
-                --*************** ADD/UPDATE SoilCondition *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdate_SoilCondition
 	@soilCondId			INT,	
 	@recordedDate		DATETIME,
@@ -567,13 +480,13 @@ CREATE PROCEDURE spAddUpdate_SoilCondition
 AS BEGIN
 
 	BEGIN TRY
-	IF(@soilCondId = 0) BEGIN			   -- ADD SoilCondition
+	IF(@soilCondId = 0) BEGIN			   
 
 		INSERT INTO SoilCondition (recordedDate, pH, moistureLvl, nitrogenLvl, phosoLvl) VALUES
 								  (@recordedDate, @pH, @moistureLvl, @nitrogenLvl, @phosoLvl)
 		SELECT	@@IDENTITY AS soilCondId,
 				[success] = CAST(1 AS BIT)
-	END ELSE BEGIN						-- UPDATE SoilCondition
+	END ELSE BEGIN						
 
 		IF NOT EXISTS (SELECT TOP(1) NULL FROM SoilCondition WHERE soilCondId = @soilCondId) BEGIN
 			SELECT	[message] = 'soil ID does not exist',
@@ -598,9 +511,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdateDelete_Plant
+	Purpose:        Add or Update or Delete a Plant Record
 
-										 --*************** ADD/UPDATE/DELETE Plant *****************
+======================================================================== */
 
 CREATE PROCEDURE spAddUpdateDelete_Plant
 	@plantId				INT,
@@ -655,11 +571,12 @@ END CATCH
 END
 GO
 
+/* =====================================================================
 
+	Name:           spAddUpdate_Tended
+	Purpose:        Add or Update a Tended Record
 
-
-
-                --*************** ADD/UPDATE Tended *****************
+======================================================================== */
 CREATE PROCEDURE spAddUpdate_Tended
 	@tendedId			INT,		
 	@actionId			INT,		
@@ -702,14 +619,6 @@ END CATCH
 	IF(@@TRANCOUNT > 0) COMMIT TRAN
 END
 GO
-
-
-/************************************************************************************************************************************************
-
-															GETTERS PROCEDURES
-
-*************************************************************************************************************************************************/
-
 
 /* =====================================================================
 
@@ -847,10 +756,148 @@ AS BEGIN
 END
 GO
 
+/************************************************************************
+									INSERT DATA
+*************************************************************************/
 
-/************************************************************* TEST PROCEDURES *********************************************************/
+SET IDENTITY_INSERT Weather ON
+INSERT INTO Weather (weatherId, humidity, temperature, precipitation, overcast, windSpeed, windDirection) VALUES 
+(1, 37, 39, 63, 35, 25, 'SE'),
+(2, 68, 81, 46, 79, 62, 'N'),
+(3, 9, 34, 62, 68, 57, 'NE'),
+(4, 85, 123, 95, 70, 35, 'E'),
+(5, 64, 67, 12, 65, 63, 'W'),
+(6, 60, 68, 64, 5, 8, 'N'),
+(7, 88, 104, 98, 26, 37, 'W'),
+(8, 82, 100, 89, 3, 63, 'W'),
+(9, 67, 12, 50, 21, 60, 'NW'),
+(10, 20, 37, 50, 78, 4, 'NE'),
+(11, 24, 90, 49, 72, 13, 'NW'),
+(12, 24, 90, 49, 72, 11, 'S'),
+(13, 24, 90, 49, 72, 2, 'SE'),
+(14, 24, 90, 49, 72, 4, 'NW'),
+(15, 57, 121, 85, 95, 23, 'N')
+SET IDENTITY_INSERT Weather OFF
 
--- Add weather
+INSERT INTO plantType (plantName, plantBreed, daysToHarvest, [description] ) VALUES 
+('Cilantro', 'Common', 45 , 'The highly aromatic, rich and spicy Cilantro adds the perfect flavor to any cuisine! This plant is ideal for harvesting both the cilantro leaves and coriander seeds. The unique flavor of this cilantro is bold and bright with a touch of citrus undertones.'),
+('Cilantro', 'Coriandrum sativum', 80 , 'Coriander is an annual herb in the family Apiaceae. It is also known as Chinese parsley, and in the United States the stems and leaves are usually called cilantro'),
+('Corn', 'Bilicious Hybrid', 78, 'Bi-Licious is an excellent mid-season hybrid with bi-colored kernels maturing in 75 or more days. Ears are 8 1/2 inches with 16 rows of kernels. Corn is a warm season crop. Pollination is essential for success so corn needs to be planted in a block of three rows of 12-24 plants (rather than one row).'),
+('Kohlrabi', 'Early White Vienna', 55, 'Round, above-ground "bulbs" with light green, smooth skin have creamy white, tender flesh. Flavor is mild, sweet, turnip-like. Superb raw or steamed. Ready for harvest 55 days from seed sowing.'),
+('Hot Pepper', 'Jalapeno Early', 80, 'Cooks Garden Favorite. Dark green, pungent 3" hot peppers are excellent fresh or pickled. Zesty flavor is great in Mexican dishes.'),
+('Watermelon', 'Orange Tendersweet', 90, 'This heirloom favorite features luscious, bright orange flesh. Tender and very sweet, the oblong striped fruits grow to 35 lb.'),
+('Cucumber', 'PickelBush', 70, 'Burpee-bred Picklebush has unbelievably compact vines that get only 2 long. White-spined fruits have classic pickle look, deep green with paler stripes. Up to 4 1/2" long, 1 1/2" across at maturity, but use them at any size. Very productive and tolerant to powdery mildew and cucumber mosaic virus.'),
+('Tomato', 'Roma ', 80, 'Compact plants produce paste-type tomatoes resistant to Verticillium and Fusarium wilts. Meaty interiors and few seeds. GARDEN HINTS: Fertilize when first fruits form to increase yield. Water deeply once a week during very dry weather. We searched the world to find the best organic seed-Burpee fully guarantees that not a drop of synthetic chemicals was used to make these excellent seeds.')
+
+SET IDENTITY_INSERT locationTbl ON
+INSERT INTO locationTbl  (locationId, fieldName, fieldColumn, fieldRow) VALUES 
+(1, 'NORTH',   1, 1),
+(2, 'NORTH',   1, 2),
+(3, 'NORTH',   1, 3),
+(4, 'NORTH',   1, 4),
+(5, 'NORTH',   1, 5),
+(6, 'NORTH',   1, 6),
+(7, 'NORTH',   1, 7),
+(8, 'NORTH',   1, 8),
+(9, 'NORTH',   1, 9),
+(10, 'NORTH',  1, 10),
+(11, 'NORTH',  1, 11),
+(12, 'NORTH',  1, 12)
+SET IDENTITY_INSERT locationTbl OFF
+
+SET IDENTITY_INSERT Plant ON
+INSERT INTO Plant (plantId, plantTypeId, locationId) VALUES 
+(1,   1,  1),
+(2,   2,  2),
+(3,   5,  3),
+(4,   4,  4),
+(5,   4,  5),
+(6,   5,  6),
+(7,   2,  7),
+(8,   3,  8),
+(9,   6,  9),
+(10,  1, 10),
+(11,  1, 10),
+(12,  1, 10),
+(13,  1, 10),
+(14,  1, 10),
+(15,  2, 11)
+SET IDENTITY_INSERT Plant OFF
+
+SET IDENTITY_INSERT Harvest ON
+INSERT INTO Harvest (harvestId, plantId, recordedDate, numHarvest, numWaste) 
+VALUES 
+(1,	1, '6/10/2020', 8, 18),
+(2,	2, '11/15/2020', 51, 3),
+(3, 3, '12/10/2020', 48, 8),
+(4, 4, '11/13/2020', 86, 16),
+(5, 5, '10/28/2020', 88, 6),
+(6, 6, '2/5/2020', 62, 14)
+SET IDENTITY_INSERT Harvest OFF
+
+SET IDENTITY_INSERT ActionTbl ON
+INSERT INTO ActionTbl (actionId, planted, watered, fertilized, depested, noAction) 
+VALUES (1, 1, 0, 0, 0, 0),
+(2, 1, 1, 1, 0, 0),
+(3, 0, 0, 0, 0, 0),
+(4, 1, 1, 0, 0, 0),
+(5, 0, 1, 0, 0, 0),
+(6, 0, 1, 0, 1, 0),
+(7, 1, 1, 1, 0, 0),
+(8, 1, 1, 1, 1, 0),
+(9, 0, 1, 0, 1, 0),
+(10, 0, 1, 0, 0, 0),
+(11, 0, 0, 0, 0, 0),
+(12, 0, 0, 0, 1, 0),
+(13, 1, 1, 1, 0, 0),
+(14, 1, 0, 1, 0, 0),
+(15, 0, 0, 1, 1, 0)
+SET IDENTITY_INSERT ActionTbl OFF
+
+SET IDENTITY_INSERT SoilCondition ON
+INSERT INTO SoilCondition (soilCondId, recordedDate, pH, moistureLvl, nitrogenLvl, phosoLvl) 
+VALUES 
+(1,   '11/21/2019', -3.6, 0.98, 0.52, 0.24),
+(2,   '2/8/2020',    5.9, 0.22, 0.99, 0.53),
+(3,   '10/1/2019',   0.2, 0.47, 0.12, 0.39),
+(4,   '6/10/2019',   5.6, 0.67, 0.55, 0.01),
+(5,   '2/20/2020',   3.9, 0.8, 0.9, 0.26),
+(6,   '4/21/2020',   2.6, 0.57, 0.89, 0.99),
+(7,   '4/16/2020',  -3.4, 0.12, 0.73, 0.99),
+(8,   '10/13/2019',  3.4, 0.75, 0.49, 0.01),
+(9,   '9/16/2019',  -5.1, 0.46, 0.91, 0.23),
+(10,  '10/17/2019', -2.1, 0.13, 0.92, 0.79),
+(11,  '4/28/2020',  -6.2, 0.41, 0.08, 0.42),
+(12,  '11/20/2019', -3.8, 0.23, 0.31, 0.53),
+(13,  '12/16/2019',  1.0, 0.64, 0.65, 0.5),
+(14,  '4/9/2020',   -4.1, 0.99, 0.36, 0.05),
+(15,  '1/16/2020',   4.1,  0.63, 0.15, 0.67),
+(16,  '6/7/2019',    1.0,  0.88, 0.22, 0.02)
+SET IDENTITY_INSERT SoilCondition OFF
+
+SET IDENTITY_INSERT Tended ON
+INSERT INTO Tended (tendedId, actionId, plantId, soilCondId, weatherId, recordedDate, plantCondition) 
+VALUES 
+(1,   1,  1, 1,  1, '11/21/2019',	'INFESTED'),
+(2,   2,  2, 2,  2, '2/8/2020',	'DEHYDRATED'),
+(3,   3,  3, 3,  3, '10/1/2019',	'INFESTED'),
+(4,   4,  4, 4,  4, '6/10/2019',	 'WILTED'),
+(5,   5,  5, 5,  5, '2/20/2020', 'BURNT'),
+(6,   6,  6, 6,  6, '4/21/2020', 'WILTED'),
+(7,   7,  7, 7,  7, '4/16/2020', 'BURNT'),
+(8,   8,  8, 8,  8, '10/13/2019', 'HEALTHY'),
+(9,   9,  9, 9,  9, '9/16/2019',  'WILTED'),
+(10, 10, 10, 10, 10,'10/17/2019', 'DEHYDRATED'),
+(11, 11, 11, 11, 11,'4/28/2020', 'BURNT'),
+(12, 12, 12, 12, 12,'11/20/2019', 'INFESTED'),
+(13, 13, 13, 13, 13,'12/16/2019', 'DEHYDRATED'),
+(14, 14, 14, 14, 14,'4/9/2020', 'INFESTED'),
+(15, 15, 15, 15, 15,'1/16/2020', 'DEHYDRATED')
+SET IDENTITY_INSERT Tended OFF
+GO
+/************************************************************************************************************  
+												TEST PROCEDURES
+*************************************************************************************************************/
 	exec spAddUpdateDelete_Weather 0, 56, 76, 2, 25, 20, 'NW'
 	select * from Weather
 
@@ -876,72 +923,31 @@ GO
 	exec spAddUpdateDelete_PlantType 2, 'Tomato', 'Cherry', 25, 'cherrytomatoes ~ very delicious', 1
 	select * from PlantType
 
-
 -- Add location
 	exec spAddUpdate_Location 0, 'Chestnut Fields', 3, 12
 	select * from LocationTbl
-
 
 -- Create plant seedling/ sapling
 	exec spAddUpdateDelete_Plant 0, 3, 1, 0
 	select * from Plant
 
-
 -- Add action for planting the above-created plant
 	exec spAddUpdate_Action 0, 1, 0, 0, 0, 0
 	select * from ActionTbl
-
 
 -- Add soil condition while planting 
 	exec spAddUpdate_SoilCondition 0, '05/08/2020', 4.5, 76, 35, 68
 	select * from SoilCondition
 
-
 -- Add weather record on that day
 	exec spAddUpdateDelete_Weather 0, 45, 78, 5, 58, 24, 'SW', 0
-
 
 -- Add and keep recorded of the activity of planting sapling in Tended table
 	exec spAddUpdate_Tended 0, 1, 1, 1, 2, '05/08/2020', 'healthy plant'
 	select * from Tended
 
-
 GO
 
-
-
-
-
-
-
-
-
-
-
-
-
---spGetPlantsTendedByDate --Get a list of all plants tended on a specific day
---spGetHarvestByPlantType --Get a sum of all harvests by plant type
---spGetHarvestByPlant --Get the harvest of an individual plant
---spGetWeatherByDate --Get all weather data of a specific date
---spGetPrecipByDate --Get precipitation of a specific date
---spGetSoilByPlant --Get soil conditions of a plant listed by date
---spGetSoilListByPh --Get soil list by pH range ordered by location
---spGetPlantConditionByDate --Get conditions recorded of all plants by date
---spGetLocByPlantType --Get the locations (col, row, field) of all plants of a type
---spGetLocByPlant --Get the specific location (column, row, field) of one plant
---spGetPhotosByType --Get all photos (path/to/photos) returned by plant type
---spAddDeletePhoto --Add/Delete photos (path/to/photos) of a specific plant or type
---spErrorRecord --Record database errors
-
---===================================================================
---========================= DATA ====================================
---===================================================================
-
-
-/************************************************************************************************************  
-												TEST GETTERS PROCEDURES
-*************************************************************************************************************/
 EXEC spGetSoilListByPh 0.0, 5.0
 EXEC spGetLocByPlantType 'omat';
 EXEC spGetPlantConditionByDate '12/8/2019', '12/31/2019'
@@ -967,4 +973,3 @@ SELECT * FROM vwPlantList ORDER BY plantId
 SELECT * FROM vwPlantLocation ORDER BY plantID
 SELECT * FROM vwTypeList ORDER BY plantName
 SELECT * FROM vwWateredList ORDER BY plantId
-

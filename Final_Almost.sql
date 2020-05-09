@@ -153,7 +153,7 @@ CREATE VIEW vwFertilizedList AS														-- No. 5
 	WHERE a.fertilized = 1
 GO
 
-CREATE VIEW vwPlantedList AS
+CREATE VIEW vwPlantedList AS														-- No. 6
 	SELECT	p.plantId, pt.plantName, pt.plantBreed, t.recordedDate, a.planted
 	FROM	(Plant p	LEFT JOIN Tended t ON p.plantId = t.plantId 
 						LEFT JOIN ActionTbl a ON t.actionId = a.actionId 
@@ -443,7 +443,7 @@ BEGIN TRY
 			
 			UPDATE Weather
 			SET humidity = @humidity, temperature = @temperature, precipitation = @precipitation, 
-				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection,
+				overcast = @overcast, windSpeed = @windSpeed, windDirection = @windDirection
 			WHERE weatherId = @weatherId
 
 			SELECT	@weatherId as weatherId, 
@@ -974,15 +974,15 @@ GO
 /************************************************************* TEST PROCEDURES *********************************************************/
 
 -- Add weather
-	exec spAddUpdateDelete_Weather 0, 56, 76, 2, 25, 20, 'NW', '05/08/2020'
+	exec spAddUpdateDelete_Weather 0, 56, 76, 2, 25, 20, 'NW'
 	select * from Weather
 
 -- Update weather
-	exec spAddUpdateDelete_Weather 1, 26, 36, 3, 45, 50, 'W', '05/09/2020'
+	exec spAddUpdateDelete_Weather 1, 26, 36, 3, 45, 50, 'W'
 	select * from Weather
 
 -- DELETE weather
-	exec spAddUpdateDelete_Weather 1, 26, 36, 3, 45, 50, 'W', '05/09/2020', 1
+	exec spAddUpdateDelete_Weather 1, 26, 36, 3, 45, 50, 'W', 1
 	select * from Weather
 
 -- ADD plantType
